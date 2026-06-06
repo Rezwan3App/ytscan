@@ -6,653 +6,406 @@
   <title>YTScan — Find Promo Codes in YouTube Videos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:         #000;
-      --bg2:        #0a0a0a;
-      --surface:    rgba(255,255,255,0.045);
-      --surface2:   rgba(255,255,255,0.075);
-      --border:     rgba(255,255,255,0.09);
-      --border2:    rgba(255,255,255,0.15);
-      --red:        #ff3b30;
-      --red-dim:    rgba(255,59,48,0.18);
-      --red-glow:   rgba(255,59,48,0.30);
-      --text:       #f5f5f7;
-      --text2:      #d1d1d6;
-      --muted:      #8e8e93;
-      --muted2:     #636366;
-      --success:    #32d74b;
-      --warn:       #ffd60a;
-      --mono:       "SF Mono","Fira Code","Fira Mono",ui-monospace,monospace;
+      --bg:        #060607;
+      --bg-soft:   #0c0c0e;
+      --layer1:    #111114;
+      --layer2:    #17171b;
+      --layer3:    #1f1f25;
+      --border:    rgba(255,255,255,0.08);
+      --border-hi: rgba(255,255,255,0.14);
+      --red:       #ff453a;
+      --red-2:     #ff6a2b;
+      --red-dim:   rgba(255,69,58,0.14);
+      --red-glow:  rgba(255,69,58,0.40);
+      --text:      #f5f5f7;
+      --text-2:    #c7c7cc;
+      --muted:     #8e8e93;
+      --muted-2:   #5a5a60;
+      --green:     #30d158;
+      --amber:     #ffd60a;
+      --mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+      --ease:  cubic-bezier(.4,0,.2,1);
+      --bounce: cubic-bezier(.34,1.56,.64,1);
     }
 
     html { scroll-behavior: smooth; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh;
-      overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh; overflow-x: hidden; line-height: 1.5;
     }
 
-    /* ── AMBIENT GLOWS ─────────────────────────────────────────────────── */
-    .glow-top {
-      position: fixed; top: -300px; left: 50%; transform: translateX(-50%);
-      width: 900px; height: 700px; pointer-events: none; z-index: 0;
-      background: radial-gradient(ellipse at 50% 30%, rgba(255,59,48,0.09) 0%, transparent 65%);
+    /* ── AMBIENT ── */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .ambient::before {
+      content: ""; position: absolute; top: -340px; left: 50%; transform: translateX(-50%);
+      width: 1100px; height: 760px;
+      background: radial-gradient(ellipse 50% 50% at 50% 40%, rgba(255,69,58,0.13), transparent 70%);
+    }
+    .ambient::after {
+      content: ""; position: absolute; top: 8%; right: -200px; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(255,106,43,0.06), transparent 70%);
+    }
+    .grid-lines {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 30%, transparent 75%);
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 30%, transparent 75%);
     }
 
-    /* ── NAV ───────────────────────────────────────────────────────────── */
+    /* ── NAV ── */
     nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      height: 52px;
-      display: flex; align-items: center; padding: 0 28px;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: saturate(180%) blur(24px);
-      -webkit-backdrop-filter: saturate(180%) blur(24px);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 56px;
+      display: flex; align-items: center; padding: 0 24px;
+      background: rgba(6,6,7,0.7);
+      backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
       border-bottom: 1px solid var(--border);
     }
-    .nav-brand {
-      display: flex; align-items: center; gap: 8px;
-      text-decoration: none; user-select: none;
-    }
+    .nav-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; user-select: none; }
     .nav-icon {
-      width: 26px; height: 26px; border-radius: 6px;
-      background: var(--red);
-      display: grid; place-items: center;
-      font-size: 10px; font-weight: 900; color: #fff; letter-spacing: -0.5px;
-      box-shadow: 0 0 18px rgba(255,59,48,0.45);
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, var(--red), var(--red-2));
+      display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #fff; letter-spacing: -0.5px;
+      box-shadow: 0 2px 12px var(--red-glow);
     }
-    .nav-wordmark {
-      font-size: 15px; font-weight: 700; letter-spacing: -0.5px;
-      color: var(--text);
-    }
-    .nav-wordmark b { color: var(--red); font-weight: 700; }
+    .nav-word { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+    .nav-word b { color: var(--red); }
     .nav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
-    /* ── HERO ──────────────────────────────────────────────────────────── */
-    .hero {
-      position: relative; z-index: 1;
-      padding: 112px 24px 56px;
-      text-align: center;
-      max-width: 780px;
-      margin: 0 auto;
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border: none; border-radius: 11px; padding: 11px 18px;
+      font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: transform .12s var(--ease), filter .15s, box-shadow .2s, background .15s, border-color .15s, color .15s;
     }
+    .btn:active:not(:disabled) { transform: scale(0.96); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-red {
+      background: linear-gradient(135deg, var(--red), var(--red-2)); color: #fff;
+      box-shadow: 0 4px 16px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .btn-red:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 6px 24px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+    .btn-soft { background: var(--layer2); color: var(--text-2); border: 1px solid var(--border-hi); }
+    .btn-soft:hover:not(:disabled) { background: var(--layer3); color: var(--text); border-color: rgba(255,255,255,0.22); }
+    .btn-nav { padding: 8px 14px; font-size: 12.5px; border-radius: 10px; }
+    .btn-danger { color: var(--red) !important; }
+    .btn-full { width: 100%; }
 
+    /* ── HERO ── */
+    .hero {
+      position: relative; z-index: 2; padding: 116px 24px 60px;
+      text-align: center; max-width: 720px; margin: 0 auto;
+    }
     .eyebrow {
       display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(255,59,48,0.10);
-      border: 1px solid rgba(255,59,48,0.22);
-      border-radius: 999px;
-      padding: 5px 14px 5px 10px;
-      font-size: 12px; font-weight: 600; color: var(--red);
-      letter-spacing: 0.2px;
-      margin-bottom: 24px;
+      background: rgba(255,69,58,0.10); border: 1px solid rgba(255,69,58,0.22); border-radius: 999px;
+      padding: 6px 14px 6px 11px; font-size: 12px; font-weight: 600; color: var(--red);
+      margin-bottom: 26px; backdrop-filter: blur(8px);
     }
-    .eyebrow-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--red);
-      animation: blink 2.2s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
-
-    .hero-h1 {
-      font-size: clamp(44px, 8vw, 88px);
-      font-weight: 800;
-      letter-spacing: -3px;
-      line-height: 1.02;
-      color: #f5f5f7;
-      margin-bottom: 22px;
-    }
-    .hero-h1 em {
+    .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 2.2s var(--ease) infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .hero h1 { font-size: clamp(40px, 7.5vw, 76px); font-weight: 800; letter-spacing: -2.6px; line-height: 1.05; margin-bottom: 20px; }
+    .hero h1 em {
       font-style: normal;
-      background: linear-gradient(135deg, #ff3b30 0%, #ff6b35 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      background: linear-gradient(120deg, var(--red) 10%, var(--red-2) 90%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
+    .hero p.lead { font-size: clamp(16px, 2.3vw, 19px); color: var(--muted); line-height: 1.6; max-width: 500px; margin: 0 auto 36px; }
 
-    .hero-body {
-      font-size: clamp(16px, 2.4vw, 20px);
-      font-weight: 400;
-      color: var(--muted);
-      line-height: 1.6;
-      max-width: 520px;
-      margin: 0 auto 36px;
+    /* ── SEARCHBAR ── */
+    .searchbar {
+      max-width: 560px; margin: 0 auto 14px; position: relative; padding: 6px;
+      background: var(--layer2); border: 1px solid var(--border-hi); border-radius: 18px;
+      display: flex; gap: 6px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: border-color .2s, box-shadow .2s;
     }
+    .searchbar:focus-within { border-color: rgba(255,69,58,0.5); box-shadow: 0 12px 48px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.04); }
+    .searchbar input {
+      flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+      padding: 12px 8px 12px 16px; font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
+    }
+    .searchbar input::placeholder { color: var(--muted); }
+    .searchbar .btn-red { border-radius: 13px; padding: 12px 26px; font-size: 14px; }
+    .hero-status { min-height: 22px; font-size: 13px; color: var(--muted); transition: color .2s; }
+    .hero-status.ok { color: var(--green); }
+    .hero-status.err { color: var(--red); }
+    .hero-status.busy { color: var(--amber); }
 
-    /* ── HERO SEARCH ───────────────────────────────────────────────────── */
-    .hero-search {
-      max-width: 600px;
-      margin: 0 auto 14px;
-      position: relative;
+    /* ── HOW IT WORKS ── */
+    .how {
+      position: relative; z-index: 2; max-width: 880px; margin: 56px auto 0; padding: 0 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
     }
-    .hero-search-input {
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 20px;
-      padding: 18px 155px 18px 22px;
-      font-family: inherit; font-size: 15px; font-weight: 500;
-      color: var(--text); outline: none;
-      transition: border-color .2s, box-shadow .2s, background .2s;
+    @media(max-width:680px){ .how { grid-template-columns: 1fr; } }
+    .how-card {
+      background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
+      border: 1px solid var(--border); border-radius: 18px; padding: 22px;
+      transition: transform .25s var(--ease), border-color .2s;
     }
-    .hero-search-input::placeholder { color: var(--muted); font-weight: 400; }
-    .hero-search-input:focus {
-      border-color: rgba(255,59,48,0.55);
-      box-shadow: 0 0 0 4px rgba(255,59,48,0.10);
-      background: rgba(255,255,255,0.08);
-    }
-    .hero-search-btn {
-      position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
-      background: var(--red); color: #fff;
-      border: none; border-radius: 14px;
-      padding: 11px 24px;
-      font-family: inherit; font-size: 14px; font-weight: 700;
-      cursor: pointer; white-space: nowrap;
-      transition: filter .15s, box-shadow .15s;
-      box-shadow: 0 4px 20px rgba(255,59,48,0.35);
-    }
-    .hero-search-btn:hover:not(:disabled) {
-      filter: brightness(1.1);
-      box-shadow: 0 6px 28px rgba(255,59,48,0.45);
-    }
-    .hero-search-btn:active { transform: translateY(-50%) scale(0.97); }
-    .hero-search-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    .how-card:hover { transform: translateY(-3px); border-color: var(--border-hi); }
+    .how-num { width: 30px; height: 30px; border-radius: 9px; background: var(--red-dim); color: var(--red); display: grid; place-items: center; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
+    .how-card h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 6px; }
+    .how-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
 
-    .hero-status {
-      min-height: 24px; font-size: 13px;
-      color: var(--muted); text-align: center;
-      transition: color .2s;
-    }
-    .hero-status.ok  { color: var(--success); }
-    .hero-status.err { color: #ff453a; }
-    .hero-status.busy { color: var(--warn); }
+    /* ── SECTION ── */
+    .section { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 0 24px; }
+    .section-title { text-align: center; margin: 84px 0 8px; font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -1px; }
+    .section-sub { text-align: center; color: var(--muted); font-size: 15px; max-width: 440px; margin: 0 auto 36px; }
 
-    /* ── FEATURE ROW ───────────────────────────────────────────────────── */
-    .feature-row {
-      position: relative; z-index: 1;
-      display: flex; justify-content: center;
-      gap: 0;
-      max-width: 760px;
-      margin: 56px auto 0;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      background: var(--surface);
+    /* ── TOOLS ── */
+    .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media(max-width:640px){ .tools { grid-template-columns: 1fr; } }
+    .tool {
+      background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
+      border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
+      transition: border-color .2s, box-shadow .25s;
     }
-    .feature-item {
-      flex: 1;
-      display: flex; flex-direction: column; align-items: center;
-      gap: 10px;
-      padding: 28px 16px;
-      border-right: 1px solid var(--border);
-      text-align: center;
-    }
-    .feature-item:last-child { border-right: none; }
-    .feature-emoji { font-size: 26px; }
-    .feature-label { font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.4; }
-    @media(max-width: 600px) {
-      .feature-row { flex-wrap: wrap; border-radius: 16px; }
-      .feature-item { flex: 0 0 50%; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-      .feature-item:nth-child(even) { border-right: none; }
-      .feature-item:nth-last-child(-n+2) { border-bottom: none; }
-    }
+    .tool:hover { border-color: var(--border-hi); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+    .tool-head { padding: 22px 22px 0; display: flex; align-items: center; gap: 12px; }
+    .tool-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--red-dim); display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+    .tool-head h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .tool-head p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .tool-body { padding: 18px 22px 22px; }
 
-    /* ── SECTION WRAP ──────────────────────────────────────────────────── */
-    .section {
-      position: relative; z-index: 1;
-      max-width: 760px;
-      margin: 72px auto 0;
-      padding: 0 24px;
-    }
-    .section-label {
-      font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted2);
-      margin-bottom: 16px;
-    }
-
-    /* ── TOOL CARDS ────────────────────────────────────────────────────── */
-    .tool-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    @media(max-width: 640px) { .tool-grid { grid-template-columns: 1fr; } }
-
-    .tool-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      transition: border-color .2s;
-    }
-    .tool-card:hover { border-color: var(--border2); }
-
-    .tool-card-header {
-      padding: 18px 20px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px;
-    }
-    .tool-card-icon {
-      width: 30px; height: 30px; border-radius: 8px;
-      background: var(--red-dim);
-      display: grid; place-items: center;
-      font-size: 15px;
-    }
-    .tool-card-title { font-size: 13px; font-weight: 700; letter-spacing: -0.2px; }
-    .tool-card-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
-
-    .tool-card-body { padding: 18px 20px 20px; }
-
-    /* ── INPUTS ────────────────────────────────────────────────────────── */
     .inp {
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      padding: 11px 14px;
-      font-family: inherit; font-size: 14px; font-weight: 500;
-      color: var(--text); outline: none;
+      width: 100%; background: var(--bg-soft); border: 1px solid var(--border-hi); border-radius: 12px;
+      padding: 12px 14px; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--text); outline: none;
       transition: border-color .15s, box-shadow .15s;
     }
-    .inp::placeholder { color: var(--muted); font-weight: 400; }
-    .inp:focus {
-      border-color: rgba(255,59,48,0.45);
-      box-shadow: 0 0 0 3px rgba(255,59,48,0.10);
-    }
+    .inp::placeholder { color: var(--muted); }
+    .inp:focus { border-color: rgba(255,69,58,0.5); box-shadow: 0 0 0 3px rgba(255,69,58,0.10); }
+    .tool .btn-red { margin-top: 12px; }
 
-    /* ── BUTTONS ───────────────────────────────────────────────────────── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      border: none; border-radius: 12px;
-      padding: 11px 18px;
-      font-family: inherit; font-size: 13px; font-weight: 700;
-      cursor: pointer; white-space: nowrap;
-      transition: filter .15s, transform .1s, opacity .15s, box-shadow .15s;
-    }
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { opacity: .38; cursor: not-allowed; filter: none !important; }
-    .btn-red {
-      background: var(--red); color: #fff; width: 100%; margin-top: 12px;
-      box-shadow: 0 4px 18px rgba(255,59,48,0.28);
-    }
-    .btn-red:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 6px 24px rgba(255,59,48,0.38); }
-    .btn-ghost {
-      background: var(--surface2); color: var(--text);
-      border: 1px solid var(--border2); padding: 7px 12px;
-      font-size: 12px; border-radius: 9px;
-    }
-    .btn-ghost:hover:not(:disabled) { border-color: var(--muted); }
-    .btn-nav {
-      background: var(--surface2); color: var(--text);
-      border: 1px solid var(--border2);
-      padding: 7px 14px; font-size: 12px; border-radius: 9px;
-    }
-    .btn-nav:hover:not(:disabled) { border-color: var(--muted); }
-    .btn-danger { color: #ff453a !important; }
+    /* ── CHIP ── */
+    .chip { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 13px; font-size: 12px; font-weight: 500; min-height: 38px; line-height: 1.45; margin-top: 12px; }
+    .chip.idle { background: var(--layer2); color: var(--muted); border: 1px solid var(--border); }
+    .chip.busy { background: var(--amber-dim, rgba(255,214,10,.08)); color: var(--amber); border: 1px solid rgba(255,214,10,.2); }
+    .chip.ok   { background: rgba(48,209,88,.08); color: var(--green); border: 1px solid rgba(48,209,88,.2); }
+    .chip.err  { background: rgba(255,69,58,.08); color: var(--red); border: 1px solid rgba(255,69,58,.2); }
 
-    /* ── STATUS CHIP ───────────────────────────────────────────────────── */
-    .chip {
-      display: flex; align-items: center; gap: 8px;
-      border-radius: 10px;
-      padding: 10px 13px;
-      font-size: 12px; font-weight: 500;
-      min-height: 38px; line-height: 1.45;
-      margin-top: 10px;
-    }
-    .chip.idle { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
-    .chip.busy { background: rgba(255,214,10,.07); color: var(--warn); border: 1px solid rgba(255,214,10,.2); }
-    .chip.ok   { background: rgba(50,215,75,.07); color: var(--success); border: 1px solid rgba(50,215,75,.2); }
-    .chip.err  { background: rgba(255,69,58,.07); color: #ff453a; border: 1px solid rgba(255,69,58,.2); }
-
-    /* ── CHANNEL LIST ──────────────────────────────────────────────────── */
-    .ch-list { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
-    .ch-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 12px;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 12px;
-      transition: border-color .15s;
-    }
-    .ch-row:hover { border-color: var(--border2); }
-    .ch-avatar {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: linear-gradient(135deg, #ff3b30, #ff6b35);
-      display: grid; place-items: center;
-      font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
-    }
-    .ch-name {
-      flex: 1; font-size: 13px; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    /* ── CHANNEL LIST ── */
+    .ch-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .ch-row { display: flex; align-items: center; gap: 11px; padding: 9px 11px; background: var(--layer2); border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s; }
+    .ch-row:hover { border-color: var(--border-hi); }
+    .ch-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--red), var(--red-2)); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; }
+    .ch-name { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ch-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .ch-btns .btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; }
 
-    /* ── DEALS SECTION ─────────────────────────────────────────────────── */
-    .deals-section {
-      position: relative; z-index: 1;
-      max-width: 760px; margin: 56px auto 0;
-      padding: 0 24px 120px;
-    }
-    .deals-top {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 24px;
-    }
-    .deals-heading { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-    .deals-badge {
-      background: rgba(255,59,48,.12); color: var(--red);
-      border: 1px solid rgba(255,59,48,.22);
-      border-radius: 999px; padding: 3px 12px;
-      font-size: 12px; font-weight: 700;
-    }
-    .deals-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
-    }
+    /* ── DEALS ── */
+    .deals-wrap { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 0 24px 120px; }
+    .deals-top { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 32px; }
+    .deals-top h2 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -1px; }
+    .deals-badge { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,69,58,.25); border-radius: 999px; padding: 4px 13px; font-size: 13px; font-weight: 800; }
+    .deals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
 
-    /* ── DEAL CARD ─────────────────────────────────────────────────────── */
-    .deal-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      display: flex; flex-direction: column; gap: 12px;
-      transition: border-color .2s, transform .25s, box-shadow .25s;
+    .deal {
+      position: relative; background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
+      border: 1px solid var(--border); border-radius: 20px; padding: 20px;
+      display: flex; flex-direction: column; gap: 13px; overflow: hidden;
+      transition: transform .25s var(--ease), border-color .2s, box-shadow .25s;
     }
-    .deal-card:hover {
-      border-color: rgba(255,255,255,0.2);
-      transform: translateY(-3px);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
-    }
-    .deal-top-row { display: flex; align-items: center; justify-content: space-between; }
-    .deal-badge {
-      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
-      background: var(--red-dim); color: var(--red);
-      border: 1px solid rgba(255,59,48,.2); border-radius: 6px;
-      padding: 3px 8px;
-    }
-    .deal-del {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted2); font-size: 15px;
-      padding: 3px 7px; border-radius: 7px;
-      line-height: 1;
-      transition: color .15s, background .15s;
-    }
-    .deal-del:hover { color: #ff453a; background: rgba(255,69,58,.10); }
+    .deal::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--red), var(--red-2)); opacity: 0; transition: opacity .2s; }
+    .deal:hover { transform: translateY(-4px); border-color: var(--border-hi); box-shadow: 0 24px 60px rgba(0,0,0,0.55); }
+    .deal:hover::before { opacity: 1; }
+    .deal-top { display: flex; align-items: center; justify-content: space-between; }
+    .deal-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,69,58,.22); border-radius: 6px; padding: 4px 9px; }
+    .deal-del { background: none; border: none; cursor: pointer; color: var(--muted-2); font-size: 14px; padding: 4px 7px; border-radius: 7px; line-height: 1; transition: color .15s, background .15s; }
+    .deal-del:hover { color: var(--red); background: rgba(255,69,58,.10); }
 
-    .code-box {
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      padding: 12px 16px;
-      cursor: pointer; gap: 10px;
-      transition: border-color .15s, background .15s;
-    }
-    .code-box:hover { border-color: var(--red); background: rgba(255,59,48,.05); }
-    .code-text {
-      font-family: var(--mono);
-      font-size: 17px; font-weight: 700; letter-spacing: 1.8px;
-      color: var(--text);
-    }
-    .code-copy {
-      font-size: 16px; color: var(--muted);
-      transition: color .15s;
-      flex-shrink: 0;
-    }
+    .code-box { display: flex; align-items: center; justify-content: space-between; background: var(--bg-soft); border: 1px dashed var(--border-hi); border-radius: 12px; padding: 13px 16px; cursor: pointer; gap: 10px; transition: border-color .15s, background .15s; }
+    .code-box:hover { border-color: var(--red); border-style: solid; background: var(--red-dim); }
+    .code-text { font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: 1.5px; color: var(--text); }
+    .code-copy { font-size: 14px; color: var(--muted); flex-shrink: 0; transition: color .15s; }
     .code-box:hover .code-copy { color: var(--red); }
 
-    .deal-context {
-      font-size: 12px; color: var(--muted); line-height: 1.55;
-      font-style: italic;
-    }
-    .deal-footer {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-    }
+    .deal-ctx { font-size: 12.5px; color: var(--muted); line-height: 1.55; font-style: italic; }
+    .deal-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border); }
     .deal-ch { font-size: 12px; font-weight: 600; color: var(--muted); }
-    .deal-link {
-      font-size: 12px; font-weight: 600; color: var(--red);
-      text-decoration: none;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 150px;
-    }
+    .deal-link { font-size: 12px; font-weight: 600; color: var(--red); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
     .deal-link:hover { text-decoration: underline; }
-    .deal-ts {
-      margin-left: auto; flex-shrink: 0;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 3px 10px;
-      font-size: 11px; font-weight: 600; color: var(--muted);
-      cursor: pointer;
-      transition: color .15s, border-color .15s;
-    }
-    .deal-ts:hover { color: var(--text2); border-color: var(--muted); }
+    .deal-ts { margin-left: auto; flex-shrink: 0; background: var(--layer2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--text-2); cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+    .deal-ts:hover { color: #fff; border-color: var(--border-hi); background: var(--layer3); }
 
-    /* ── EMPTY STATE ───────────────────────────────────────────────────── */
-    .empty {
-      grid-column: 1/-1;
-      padding: 72px 24px; text-align: center;
-    }
-    .empty-icon { font-size: 56px; margin-bottom: 20px; }
-    .empty-title { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 10px; }
-    .empty-body {
-      font-size: 14px; color: var(--muted); line-height: 1.65;
-      max-width: 340px; margin: 0 auto;
-    }
+    /* ── EMPTY ── */
+    .empty { grid-column: 1/-1; padding: 64px 24px; text-align: center; background: linear-gradient(180deg, var(--layer1), var(--bg-soft)); border: 1px dashed var(--border-hi); border-radius: 22px; }
+    .empty-ico { font-size: 50px; margin-bottom: 18px; filter: grayscale(.2); }
+    .empty h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 10px; }
+    .empty p { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 360px; margin: 0 auto; }
 
-    /* ── SEPARATOR ─────────────────────────────────────────────────────── */
-    .sep {
-      max-width: 760px; margin: 64px auto 0;
-      padding: 0 24px;
-    }
-    .sep hr { border: none; border-top: 1px solid var(--border); }
+    /* ── FOOTER ── */
+    footer { position: relative; z-index: 2; border-top: 1px solid var(--border); padding: 32px 24px 48px; text-align: center; }
+    footer p { font-size: 12.5px; color: var(--muted-2); }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text-2); }
 
-    /* ── TOAST ─────────────────────────────────────────────────────────── */
+    /* ── TOAST ── */
     .toast {
-      position: fixed; bottom: 28px; left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(24,24,26,0.92);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 14px;
-      padding: 12px 24px;
-      font-size: 13px; font-weight: 600;
-      box-shadow: 0 10px 48px rgba(0,0,0,0.7);
-      z-index: 9999; pointer-events: none;
-      opacity: 0;
-      transition: transform .32s cubic-bezier(.34,1.56,.64,1), opacity .24s;
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(22,22,24,0.94); backdrop-filter: blur(20px);
+      border: 1px solid var(--border-hi); border-radius: 14px; padding: 13px 24px;
+      font-size: 13px; font-weight: 600; box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+      z-index: 9999; pointer-events: none; opacity: 0;
+      transition: transform .32s var(--bounce), opacity .24s;
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    /* ── SPINNER ───────────────────────────────────────────────────────── */
-    .sp {
-      display: inline-block; width: 11px; height: 11px;
-      border: 2px solid rgba(255,255,255,0.18); border-top-color: currentColor;
-      border-radius: 50%; animation: spin .55s linear infinite;
-      vertical-align: middle; flex-shrink: 0;
-    }
+    /* ── SPINNER ── */
+    .sp { display: inline-block; width: 11px; height: 11px; border: 2px solid rgba(255,255,255,0.18); border-top-color: currentColor; border-radius: 50%; animation: spin .55s linear infinite; vertical-align: middle; flex-shrink: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── REVEAL ── */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
   </style>
 </head>
 <body>
 
-<!-- Ambient glow -->
-<div class="glow-top"></div>
+<div class="ambient"></div>
+<div class="grid-lines"></div>
 
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="/">
     <div class="nav-icon">YT</div>
-    <span class="nav-wordmark">YT<b>Scan</b></span>
+    <span class="nav-word">YT<b>Scan</b></span>
   </a>
   <div class="nav-right">
-    <button class="btn btn-nav" id="scanAllBtn">↻ Scan All</button>
-    <button class="btn btn-nav btn-danger" id="clearAllBtn">Clear</button>
+    <button class="btn btn-soft btn-nav" id="scanAllBtn">↻ Scan all</button>
+    <button class="btn btn-soft btn-nav btn-danger" id="clearAllBtn">Clear</button>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="eyebrow">
-    <span class="eyebrow-dot"></span>
-    No account needed · Works on any YouTube video
-  </div>
-  <h1 class="hero-h1">Stop watching.<br/>Just get the <em>deal.</em></h1>
-  <p class="hero-body">Paste a YouTube link. YTScan reads the full transcript and surfaces every promo code, discount, and sponsored offer — with a direct timestamp so you can skip right to it.</p>
+  <div class="eyebrow"><span class="eyebrow-dot"></span> No account needed · Works on any YouTube video</div>
+  <h1>Stop watching.<br/>Just get the <em>deal.</em></h1>
+  <p class="lead">Paste a YouTube link. YTScan reads the full transcript and pulls every promo code, discount, and sponsored offer — with a timestamp to jump straight to it.</p>
 
-  <div class="hero-search">
-    <input
-      class="hero-search-input"
-      id="heroUrl"
-      type="url"
-      placeholder="Paste a YouTube URL…"
-      autocomplete="off"
-      spellcheck="false"
-    />
-    <button class="hero-search-btn" id="heroScanBtn">Scan</button>
+  <div class="searchbar">
+    <input id="heroUrl" type="url" placeholder="Paste a YouTube URL…" autocomplete="off" spellcheck="false"/>
+    <button class="btn btn-red" id="heroScanBtn">Scan</button>
   </div>
   <p class="hero-status" id="heroStatus">Try it — paste any YouTube video above.</p>
 </section>
 
-<!-- FEATURE ROW -->
-<div class="section" style="margin-top:48px">
-  <div class="feature-row">
-    <div class="feature-item">
-      <span class="feature-emoji">🔍</span>
-      <span class="feature-label">Full transcript<br/>scan</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-emoji">🏷️</span>
-      <span class="feature-label">Promo codes<br/>extracted</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-emoji">⏱</span>
-      <span class="feature-label">Timestamp<br/>deep link</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-emoji">📺</span>
-      <span class="feature-label">Auto-scan<br/>channels</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-emoji">📋</span>
-      <span class="feature-label">One-click<br/>copy</span>
-    </div>
+<!-- HOW IT WORKS -->
+<div class="how">
+  <div class="how-card reveal">
+    <div class="how-num">1</div>
+    <h3>Paste a link</h3>
+    <p>Drop in any YouTube video or add a channel to watch automatically.</p>
+  </div>
+  <div class="how-card reveal">
+    <div class="how-num">2</div>
+    <h3>We read the transcript</h3>
+    <p>YTScan scans the entire spoken transcript for codes, discounts, and offers.</p>
+  </div>
+  <div class="how-card reveal">
+    <div class="how-num">3</div>
+    <h3>Get the deal</h3>
+    <p>Copy the code in one click and jump to the exact timestamp it was mentioned.</p>
   </div>
 </div>
 
 <!-- TOOLS -->
-<div class="section" style="margin-top:48px">
-  <p class="section-label">Tools</p>
-  <div class="tool-grid">
-
-    <!-- Scan a video -->
-    <div class="tool-card">
-      <div class="tool-card-header">
-        <div class="tool-card-icon">🎬</div>
-        <div>
-          <div class="tool-card-title">Scan a video</div>
-          <div class="tool-card-sub">Paste any YouTube link</div>
-        </div>
+<h2 class="section-title">Two ways to find deals</h2>
+<p class="section-sub">Scan a single video on demand, or watch your favorite channels and let codes roll in.</p>
+<div class="section">
+  <div class="tools">
+    <div class="tool reveal">
+      <div class="tool-head">
+        <div class="tool-ico">🎬</div>
+        <div><h3>Scan a video</h3><p>One link, instant results</p></div>
       </div>
-      <div class="tool-card-body">
+      <div class="tool-body">
         <input class="inp" id="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
-        <button class="btn btn-red" id="scanBtn">Scan for deals</button>
+        <button class="btn btn-red btn-full" id="scanBtn">Scan for deals</button>
         <div class="chip idle" id="scanStatus">Ready to scan.</div>
       </div>
     </div>
 
-    <!-- Watch a channel -->
-    <div class="tool-card">
-      <div class="tool-card-header">
-        <div class="tool-card-icon">📡</div>
-        <div>
-          <div class="tool-card-title">Watch a channel</div>
-          <div class="tool-card-sub">Auto-scan latest videos</div>
-        </div>
+    <div class="tool reveal">
+      <div class="tool-head">
+        <div class="tool-ico">📡</div>
+        <div><h3>Watch a channel</h3><p>Auto-scan latest uploads</p></div>
       </div>
-      <div class="tool-card-body">
+      <div class="tool-body">
         <input class="inp" id="channelUrl" type="url" placeholder="https://youtube.com/@channel"/>
-        <button class="btn btn-red" id="addChannelBtn">Add channel</button>
+        <button class="btn btn-red btn-full" id="addChannelBtn">Add channel</button>
         <div class="chip idle" id="channelStatus">Add channels to monitor.</div>
         <div class="ch-list" id="channelList"></div>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- DEALS -->
-<div class="sep" style="margin-top:56px"><hr/></div>
-
-<div class="deals-section">
+<h2 class="section-title">Your deals</h2>
+<p class="section-sub">Everything YTScan has found, ready to copy.</p>
+<div class="deals-wrap">
   <div class="deals-top">
-    <span class="deals-heading">Deals found</span>
+    <h2 style="font-size:20px">Found</h2>
     <span class="deals-badge" id="dealCount">0</span>
   </div>
   <div class="deals-grid" id="dealsList"></div>
 </div>
 
-<!-- TOAST -->
+<footer>
+  <p>YTScan · reads public YouTube transcripts · <a href="https://github.com/Rezwan3App/ytscan" target="_blank" rel="noreferrer">View source</a></p>
+</footer>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const API = "";
 
-// ── Toast ───────────────────────────────────────────────────────────────────
 let _tt;
 function toast(msg, ms = 3000) {
   const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(_tt);
-  _tt = setTimeout(() => el.classList.remove("show"), ms);
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove("show"), ms);
 }
 
-// ── Status chip ──────────────────────────────────────────────────────────────
 function setChip(id, html, state = "idle") {
   const el = document.getElementById(id);
-  el.className = `chip ${state}`;
-  el.innerHTML = html;
+  el.className = `chip ${state}`; el.innerHTML = html;
 }
-function setHeroStatus(msg, state = "") {
+function setHero(msg, state = "") {
   const el = document.getElementById("heroStatus");
-  el.className = `hero-status${state ? " " + state : ""}`;
-  el.innerHTML = msg;
+  el.className = `hero-status${state ? " " + state : ""}`; el.innerHTML = msg;
 }
-
 const sp = () => `<span class="sp"></span>`;
 
-// ── Deals ────────────────────────────────────────────────────────────────────
+// ── Deals ──
 async function loadDeals() {
   const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
   renderDeals(deals);
 }
-
 function renderDeals(deals) {
   document.getElementById("dealCount").textContent = deals.length;
   const el = document.getElementById("dealsList");
-
   if (!deals.length) {
     el.innerHTML = `
       <div class="empty">
-        <div class="empty-icon">🎯</div>
-        <div class="empty-title">No deals yet</div>
-        <p class="empty-body">Paste a YouTube link in the search above. YTScan will read the transcript and pull out every promo code, discount, and sponsored offer automatically.</p>
+        <div class="empty-ico">🎯</div>
+        <h3>No deals yet</h3>
+        <p>Paste a YouTube link above. YTScan will read the transcript and pull out every promo code, discount, and sponsored offer automatically.</p>
       </div>`;
     return;
   }
-
   el.innerHTML = deals.map(dealCard).join("");
-
   el.querySelectorAll(".code-box").forEach(box => {
     box.addEventListener("click", () => {
       navigator.clipboard.writeText(box.dataset.code).catch(() => {});
@@ -660,9 +413,7 @@ function renderDeals(deals) {
     });
   });
   el.querySelectorAll(".deal-ts").forEach(btn => {
-    btn.addEventListener("click", () =>
-      window.open(`${btn.dataset.url}&t=${btn.dataset.sec}s`, "_blank")
-    );
+    btn.addEventListener("click", () => window.open(`${btn.dataset.url}&t=${btn.dataset.sec}s`, "_blank"));
   });
   el.querySelectorAll(".deal-del").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -671,25 +422,24 @@ function renderDeals(deals) {
     });
   });
 }
-
 function dealCard(d) {
   const code = d.code ? `
     <div class="code-box" data-code="${d.code}" title="Click to copy">
       <span class="code-text">${d.code}</span>
-      <span class="code-copy">⧉</span>
+      <span class="code-copy">⧉ copy</span>
     </div>` : "";
-  const ctx = d.context ? `<p class="deal-context">"${d.context.slice(0,180)}${d.context.length > 180 ? "…" : ""}"</p>` : "";
-  const title = (d.videoTitle || "").slice(0, 44) + ((d.videoTitle || "").length > 44 ? "…" : "");
-
+  const ctx = d.context ? `<p class="deal-ctx">"${d.context.slice(0,170)}${d.context.length > 170 ? "…" : ""}"</p>` : "";
+  const t = (d.videoTitle || "");
+  const title = t.slice(0, 42) + (t.length > 42 ? "…" : "");
   return `
-    <div class="deal-card">
-      <div class="deal-top-row">
+    <div class="deal">
+      <div class="deal-top">
         <span class="deal-badge">${d.label}</span>
         <button class="deal-del" data-id="${d.id}" title="Remove">✕</button>
       </div>
       ${code}
       ${ctx}
-      <div class="deal-footer">
+      <div class="deal-foot">
         <span class="deal-ch">📺 ${d.channelName}</span>
         <a class="deal-link" href="${d.videoUrl}" target="_blank" rel="noreferrer" title="${d.videoTitle}">${title}</a>
         <span class="deal-ts" data-url="${d.videoUrl}" data-sec="${d.timestampSeconds}">⏱ ${d.timestampLabel}</span>
@@ -697,84 +447,55 @@ function dealCard(d) {
     </div>`;
 }
 
-// ── Scan ─────────────────────────────────────────────────────────────────────
+// ── Scan ──
 async function doScan(url, isHero) {
   if (!url) return;
   const btn = document.getElementById(isHero ? "heroScanBtn" : "scanBtn");
-  const setS = isHero
-    ? (m, s) => setHeroStatus(m, s)
-    : (m, s) => setChip("scanStatus", m, s);
-
-  btn.disabled = true;
-  setS(`${sp()} Fetching transcript…`, "busy");
-
+  const setS = isHero ? (m,s) => setHero(m,s) : (m,s) => setChip("scanStatus", m, s);
+  btn.disabled = true; setS(`${sp()} Fetching transcript…`, "busy");
   const res = await fetch(`${API}/api/scan`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   }).then(r => r.json()).catch(e => ({ error: e.message }));
-
   btn.disabled = false;
-
-  if (res.error) {
-    setS(`❌  ${res.error}`, "err");
-  } else if (res.skipped) {
-    setS("⚡  Already scanned — results below.", "ok");
-    loadDeals();
-  } else {
+  if (res.error) { setS(`❌  ${res.error}`, "err"); }
+  else if (res.skipped) { setS("⚡  Already scanned — results below.", "ok"); loadDeals(); }
+  else {
     const n = res.dealsFound;
     setS(`✅  Found ${n} deal${n !== 1 ? "s" : ""}.`, "ok");
     loadDeals();
-    if (n > 0) {
-      document.querySelector(".deals-section").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (n > 0) document.querySelector(".deals-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
+document.getElementById("heroScanBtn").addEventListener("click", () => doScan(document.getElementById("heroUrl").value.trim(), true));
+document.getElementById("heroUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("heroScanBtn").click(); });
+document.getElementById("scanBtn").addEventListener("click", () => doScan(document.getElementById("videoUrl").value.trim(), false));
+document.getElementById("videoUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("scanBtn").click(); });
 
-document.getElementById("heroScanBtn").addEventListener("click", () => {
-  doScan(document.getElementById("heroUrl").value.trim(), true);
-});
-document.getElementById("heroUrl").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("heroScanBtn").click();
-});
-
-document.getElementById("scanBtn").addEventListener("click", () => {
-  doScan(document.getElementById("videoUrl").value.trim(), false);
-});
-document.getElementById("videoUrl").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("scanBtn").click();
-});
-
-// ── Channels ──────────────────────────────────────────────────────────────────
+// ── Channels ──
 async function loadChannels() {
   const chs = await fetch(`${API}/api/channels`).then(r => r.json()).catch(() => []);
   renderChannels(chs);
 }
-
 function renderChannels(chs) {
   const el = document.getElementById("channelList");
   if (!chs.length) { el.innerHTML = ""; return; }
-
   el.innerHTML = chs.map(ch => `
     <div class="ch-row">
       <div class="ch-avatar">${ch.name.charAt(0).toUpperCase()}</div>
       <span class="ch-name" title="${ch.name}">${ch.name}</span>
       <div class="ch-btns">
-        <button class="btn btn-ghost ch-scan" data-id="${ch.id}" title="Scan now">↻</button>
-        <button class="btn btn-ghost btn-danger ch-del" data-id="${ch.id}" title="Remove">✕</button>
+        <button class="btn btn-soft ch-scan" data-id="${ch.id}" title="Scan now">↻</button>
+        <button class="btn btn-soft btn-danger ch-del" data-id="${ch.id}" title="Remove">✕</button>
       </div>
     </div>`).join("");
-
   el.querySelectorAll(".ch-scan").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const orig = btn.textContent;
-      btn.disabled = true; btn.innerHTML = sp();
+      const orig = btn.textContent; btn.disabled = true; btn.innerHTML = sp();
       setChip("channelStatus", `${sp()} Scanning latest videos…`, "busy");
-      const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" })
-        .then(r => r.json()).catch(e => ({ error: e.message }));
-      if (r.error) {
-        setChip("channelStatus", `❌  ${r.error}`, "err");
-      } else {
+      const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
+      if (r.error) { setChip("channelStatus", `❌  ${r.error}`, "err"); }
+      else {
         const n = r.results.reduce((a, v) => a + (v.deals?.length ?? 0), 0);
         setChip("channelStatus", `✅  Scanned ${r.results.length} videos — ${n} new deal${n !== 1 ? "s" : ""}.`, "ok");
         loadDeals();
@@ -782,7 +503,6 @@ function renderChannels(chs) {
       btn.disabled = false; btn.textContent = orig;
     });
   });
-
   el.querySelectorAll(".ch-del").forEach(btn => {
     btn.addEventListener("click", async () => {
       await fetch(`${API}/api/channels/${btn.dataset.id}`, { method: "DELETE" });
@@ -790,54 +510,47 @@ function renderChannels(chs) {
     });
   });
 }
-
 document.getElementById("addChannelBtn").addEventListener("click", async () => {
   const url = document.getElementById("channelUrl").value.trim();
   if (!url) return;
-  const btn = document.getElementById("addChannelBtn");
-  btn.disabled = true;
+  const btn = document.getElementById("addChannelBtn"); btn.disabled = true;
   setChip("channelStatus", `${sp()} Resolving channel…`, "busy");
-
   const res = await fetch(`${API}/api/channels`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   }).then(r => r.json()).catch(e => ({ error: e.message }));
-
   btn.disabled = false;
-  if (res.error) {
-    setChip("channelStatus", `❌  ${res.error}`, "err");
-  } else {
+  if (res.error) { setChip("channelStatus", `❌  ${res.error}`, "err"); }
+  else {
     setChip("channelStatus", `✅  Added "${res.channel.name}" — scanning in background.`, "ok");
     document.getElementById("channelUrl").value = "";
-    loadChannels();
-    setTimeout(loadDeals, 9000);
+    loadChannels(); setTimeout(loadDeals, 9000);
   }
 });
-document.getElementById("channelUrl").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("addChannelBtn").click();
-});
+document.getElementById("channelUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addChannelBtn").click(); });
 
-// ── Scan all ──────────────────────────────────────────────────────────────────
+// ── Scan all / clear ──
 document.getElementById("scanAllBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("scanAllBtn");
-  btn.disabled = true; btn.innerHTML = `${sp()} Scanning…`;
+  const btn = document.getElementById("scanAllBtn"); btn.disabled = true; btn.innerHTML = `${sp()} Scanning…`;
   const r = await fetch(`${API}/api/scan-all`, { method: "POST" }).then(r => r.json()).catch(() => ({}));
   toast(`↻ Scanning ${r.channelsQueued ?? 0} channel${(r.channelsQueued ?? 0) !== 1 ? "s" : ""} in background…`);
-  btn.disabled = false; btn.textContent = "↻ Scan All";
+  btn.disabled = false; btn.textContent = "↻ Scan all";
   setTimeout(loadDeals, 10000);
 });
-
-// ── Clear all ─────────────────────────────────────────────────────────────────
 document.getElementById("clearAllBtn").addEventListener("click", async () => {
   if (!confirm("Remove all saved deals?")) return;
   const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
   await Promise.all(deals.map(d => fetch(`${API}/api/deals/${d.id}`, { method: "DELETE" })));
-  loadDeals();
-  toast("🗑  All deals cleared.");
+  loadDeals(); toast("🗑  All deals cleared.");
 });
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ── Reveal on scroll ──
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
+}, { threshold: 0.12 });
+document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+// ── Init ──
 loadDeals();
 loadChannels();
 </script>
