@@ -3,421 +3,656 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DealDrop — YouTube Promo Finder</title>
+    <title>DealDrop</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       :root {
-        --bg: #0a0a0a;
-        --surface: #141414;
-        --surface2: #1c1c1c;
-        --border: #2a2a2a;
-        --primary: #ff2d2d;
-        --primary-hover: #ff4444;
-        --text: #f0f0f0;
-        --muted: #888;
-        --success: #22c55e;
-        --tag-bg: #1e1e1e;
+        --bg:         #080809;
+        --surface:    #0f0f11;
+        --surface2:   #18181b;
+        --surface3:   #222226;
+        --border:     #2a2a30;
+        --border2:    #3a3a42;
+        --red:        #ff3b3b;
+        --red-dim:    rgba(255,59,59,.12);
+        --red-glow:   rgba(255,59,59,.25);
+        --green:      #22c55e;
+        --green-dim:  rgba(34,197,94,.12);
+        --amber:      #f59e0b;
+        --amber-dim:  rgba(245,158,11,.12);
+        --text:       #e8e8ec;
+        --text2:      #a0a0ac;
+        --text3:      #606068;
+        --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+        --radius-sm: 8px;
+        --radius:    14px;
+        --radius-lg: 20px;
       }
+
+      html { scroll-behavior: smooth; }
 
       body {
         background: var(--bg);
         color: var(--text);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: var(--font);
         font-size: 14px;
         min-height: 100vh;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
 
-      /* ── Layout ── */
-      .app { display: flex; flex-direction: column; min-height: 100vh; }
-
-      header {
-        border-bottom: 1px solid var(--border);
-        padding: 14px 24px;
+      /* ── Topbar ────────────────────────────────────────────── */
+      .topbar {
+        height: 60px;
         display: flex;
         align-items: center;
-        gap: 14px;
-        background: var(--surface);
+        gap: 12px;
+        padding: 0 28px;
+        background: rgba(8,8,9,.85);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 100;
       }
 
-      .logo {
-        background: var(--primary);
-        width: 36px; height: 36px;
-        border-radius: 10px;
+      .topbar-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+      }
+
+      .logo-mark {
+        width: 32px; height: 32px;
+        border-radius: 9px;
+        background: var(--red);
         display: grid; place-items: center;
-        font-size: 18px;
+        font-size: 16px;
+        box-shadow: 0 0 18px var(--red-glow);
+        flex-shrink: 0;
       }
 
-      header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
-      header p { color: var(--muted); font-size: 12px; margin-top: 1px; }
-
-      .header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-
-      main { flex: 1; display: grid; grid-template-columns: 320px 1fr; max-width: 1200px; margin: 0 auto; width: 100%; padding: 24px; gap: 24px; }
-
-      @media (max-width: 768px) {
-        main { grid-template-columns: 1fr; padding: 16px; }
+      .logo-name {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+        color: var(--text);
       }
 
-      /* ── Cards / Panels ── */
-      .panel {
+      .topbar-divider {
+        width: 1px; height: 20px;
+        background: var(--border);
+        margin: 0 6px;
+      }
+
+      .topbar-tagline {
+        font-size: 13px;
+        color: var(--text3);
+      }
+
+      .topbar-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* ── Layout ────────────────────────────────────────────── */
+      .layout {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 0;
+        min-height: calc(100vh - 60px);
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--border);
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow-y: auto;
+        position: sticky;
+        top: 60px;
+        max-height: calc(100vh - 60px);
+      }
+
+      .main {
+        padding: 24px 28px;
+        overflow-y: auto;
+      }
+
+      @media (max-width: 800px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+        .topbar-tagline { display: none; }
+      }
+
+      /* ── Section label ─────────────────────────────────────── */
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: var(--text3);
+      }
+
+      /* ── Card ──────────────────────────────────────────────── */
+      .card {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: var(--radius);
         overflow: hidden;
       }
 
-      .panel-header {
-        padding: 16px;
-        border-bottom: 1px solid var(--border);
+      .card-body { padding: 16px; }
+
+      /* ── Input group ───────────────────────────────────────── */
+      .input-group {
         display: flex;
+        gap: 8px;
         align-items: center;
-        justify-content: space-between;
       }
 
-      .panel-title { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
-
-      .panel-body { padding: 16px; }
-
-      /* ── Inputs ── */
-      .input-row { display: flex; gap: 8px; }
-
-      input[type="text"], input[type="url"] {
+      .input {
         flex: 1;
+        height: 40px;
+        padding: 0 14px;
         background: var(--surface2);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px 12px;
+        border-radius: var(--radius-sm);
         color: var(--text);
-        font-size: 14px;
+        font-size: 13px;
+        font-family: var(--font);
         outline: none;
-        transition: border-color .15s;
+        transition: border-color .15s, box-shadow .15s;
+        min-width: 0;
       }
 
-      input:focus { border-color: var(--primary); }
-      input::placeholder { color: var(--muted); }
+      .input:focus {
+        border-color: var(--red);
+        box-shadow: 0 0 0 3px var(--red-dim);
+      }
 
-      /* ── Buttons ── */
+      .input::placeholder { color: var(--text3); }
+
+      /* ── Buttons ───────────────────────────────────────────── */
       .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 40px;
+        padding: 0 16px;
         border: none;
-        border-radius: 10px;
-        padding: 10px 16px;
-        font-weight: 700;
+        border-radius: var(--radius-sm);
         font-size: 13px;
+        font-weight: 700;
+        font-family: var(--font);
         cursor: pointer;
-        transition: opacity .15s, transform .1s;
         white-space: nowrap;
+        transition: opacity .15s, transform .1s, box-shadow .15s;
+        text-decoration: none;
       }
 
       .btn:active { transform: scale(0.97); }
-      .btn:disabled { opacity: .4; cursor: not-allowed; }
+      .btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
 
-      .btn-primary { background: var(--primary); color: #fff; }
-      .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+      .btn-primary {
+        background: var(--red);
+        color: #fff;
+        box-shadow: 0 2px 12px var(--red-glow);
+      }
 
-      .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-      .btn-ghost:hover:not(:disabled) { border-color: var(--muted); }
+      .btn-primary:hover { opacity: .9; box-shadow: 0 4px 20px var(--red-glow); }
 
-      .btn-sm { padding: 6px 10px; font-size: 12px; }
+      .btn-ghost {
+        background: var(--surface2);
+        color: var(--text2);
+        border: 1px solid var(--border);
+      }
 
-      /* ── Channel list ── */
-      .channel-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+      .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
 
-      .channel-item {
+      .btn-icon {
+        width: 32px; height: 32px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        background: var(--surface3);
+        color: var(--text3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 14px;
+        transition: color .15s, border-color .15s, background .15s;
+      }
+
+      .btn-icon:hover { color: var(--text); border-color: var(--border2); background: var(--surface2); }
+      .btn-icon:disabled { opacity: .3; cursor: not-allowed; }
+
+      /* ── Status pill ───────────────────────────────────────── */
+      .status {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--text3);
+        min-height: 38px;
+        line-height: 1.5;
+        transition: border-color .2s, color .2s;
+      }
+
+      .status.ok    { color: var(--green); border-color: rgba(34,197,94,.25); background: var(--green-dim); }
+      .status.error { color: #f87171;      border-color: rgba(248,113,113,.25); }
+      .status.busy  { color: var(--text2); }
+
+      /* ── Channels list ─────────────────────────────────────── */
+      .ch-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+
+      .ch-item {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 10px 12px;
+        padding: 9px 12px;
         background: var(--surface2);
-        border-radius: 12px;
         border: 1px solid var(--border);
-      }
-
-      .channel-avatar {
-        width: 32px; height: 32px;
-        border-radius: 50%;
-        background: var(--primary);
-        display: grid; place-items: center;
-        font-size: 14px;
-        font-weight: 800;
-        flex-shrink: 0;
-        color: #fff;
-      }
-
-      .channel-name { font-weight: 600; font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .channel-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-      /* ── Deal cards ── */
-      .deals-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-      }
-
-      .deals-header h2 { font-size: 16px; font-weight: 800; }
-      .deal-count {
-        background: var(--primary);
-        color: #fff;
-        border-radius: 999px;
-        padding: 2px 9px;
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .deals-grid { display: flex; flex-direction: column; gap: 12px; }
-
-      .deal-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 16px;
+        border-radius: var(--radius-sm);
         transition: border-color .15s;
       }
 
-      .deal-card:hover { border-color: #444; }
+      .ch-item:hover { border-color: var(--border2); }
 
-      .deal-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-
-      .deal-label {
-        display: inline-block;
-        background: rgba(255,45,45,.15);
-        color: var(--primary);
-        border-radius: 6px;
-        padding: 3px 8px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
-
-      .deal-code {
-        font-family: "Courier New", monospace;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 6px 12px;
-        font-size: 15px;
+      .ch-avatar {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--red), #ff7a00);
+        display: grid; place-items: center;
+        font-size: 13px;
         font-weight: 800;
-        letter-spacing: 1px;
+        color: #fff;
+        flex-shrink: 0;
+      }
+
+      .ch-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ch-actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+      /* ── Deals area ────────────────────────────────────────── */
+      .deals-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .deals-bar h2 {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.4px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 22px;
+        padding: 0 8px;
+        background: var(--red);
+        color: #fff;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        box-shadow: 0 0 10px var(--red-glow);
+      }
+
+      .deals-grid { display: flex; flex-direction: column; gap: 10px; }
+
+      /* ── Deal card ─────────────────────────────────────────── */
+      .deal-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        transition: border-color .15s, box-shadow .2s;
+        position: relative;
+      }
+
+      .deal-card:hover {
+        border-color: var(--border2);
+        box-shadow: 0 4px 24px rgba(0,0,0,.35);
+      }
+
+      .deal-head {
         display: flex;
         align-items: center;
         gap: 8px;
         margin-bottom: 10px;
-        cursor: pointer;
-        user-select: all;
       }
 
-      .deal-code:hover { border-color: var(--primary); }
-      .copy-hint { font-size: 11px; color: var(--muted); font-family: system-ui; font-weight: 500; letter-spacing: 0; }
+      .deal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        text-transform: uppercase;
+        background: var(--red-dim);
+        color: var(--red);
+        border: 1px solid rgba(255,59,59,.2);
+      }
+
+      .deal-tag.free    { background: var(--green-dim); color: var(--green); border-color: rgba(34,197,94,.2); }
+      .deal-tag.limited { background: var(--amber-dim); color: var(--amber); border-color: rgba(245,158,11,.2); }
+
+      .deal-delete-btn {
+        margin-left: auto;
+        opacity: 0;
+        transition: opacity .15s;
+      }
+
+      .deal-card:hover .deal-delete-btn { opacity: 1; }
+
+      .deal-code-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: border-color .15s, background .15s;
+      }
+
+      .deal-code-row:hover {
+        border-color: var(--red);
+        background: var(--red-dim);
+      }
+
+      .deal-code-text {
+        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--text);
+        flex: 1;
+      }
+
+      .deal-copy-hint {
+        font-size: 11px;
+        color: var(--text3);
+        font-weight: 500;
+      }
 
       .deal-context {
-        color: var(--muted);
         font-size: 12px;
-        line-height: 1.5;
+        color: var(--text3);
+        line-height: 1.55;
         margin-bottom: 12px;
         font-style: italic;
+        border-left: 2px solid var(--border2);
+        padding-left: 10px;
       }
 
-      .deal-meta {
+      .deal-footer {
         display: flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
       }
 
-      .deal-channel {
+      .deal-channel-label {
         font-size: 12px;
-        font-weight: 600;
-        color: var(--muted);
+        color: var(--text3);
+        font-weight: 500;
       }
 
       .deal-video-link {
         font-size: 12px;
-        color: var(--primary);
-        text-decoration: none;
         font-weight: 600;
+        color: var(--text2);
+        text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 260px;
+        transition: color .15s;
       }
 
-      .deal-video-link:hover { text-decoration: underline; }
+      .deal-video-link:hover { color: var(--red); }
 
-      .deal-ts {
-        font-size: 12px;
+      .deal-ts-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
         background: var(--surface2);
+        border: 1px solid var(--border);
         border-radius: 6px;
-        padding: 2px 8px;
-        color: var(--muted);
+        color: var(--text3);
         cursor: pointer;
+        transition: color .15s, border-color .15s;
+        margin-left: auto;
+        white-space: nowrap;
+        text-decoration: none;
       }
 
-      .deal-ts:hover { color: var(--text); }
+      .deal-ts-btn:hover { color: var(--text); border-color: var(--border2); }
 
-      .deal-delete { margin-left: auto; }
-
-      /* ── Empty / loading states ── */
+      /* ── Empty state ───────────────────────────────────────── */
       .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-        padding: 48px 24px;
-        color: var(--muted);
+        padding: 80px 40px;
+        color: var(--text3);
+        gap: 12px;
       }
 
-      .empty-icon { font-size: 40px; margin-bottom: 12px; }
-      .empty p { line-height: 1.6; font-size: 13px; }
+      .empty-icon {
+        font-size: 44px;
+        opacity: .5;
+      }
 
+      .empty h3 { font-size: 16px; font-weight: 700; color: var(--text2); }
+      .empty p  { font-size: 13px; line-height: 1.6; max-width: 300px; }
+
+      /* ── Toast ─────────────────────────────────────────────── */
       .toast {
         position: fixed;
-        bottom: 24px;
+        bottom: 28px;
         left: 50%;
-        transform: translateX(-50%);
-        background: #1a1a1a;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px 20px;
+        transform: translateX(-50%) translateY(8px);
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        padding: 11px 20px;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        color: var(--text);
+        box-shadow: 0 12px 40px rgba(0,0,0,.6);
         z-index: 9999;
         opacity: 0;
-        transition: opacity .25s;
+        transition: opacity .2s, transform .2s;
         pointer-events: none;
+        white-space: nowrap;
       }
 
-      .toast.show { opacity: 1; }
-
-      .status-bar {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 12px;
-        min-height: 38px;
-        line-height: 1.5;
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
 
-      .status-bar.success { color: var(--success); border-color: rgba(34,197,94,.3); }
-      .status-bar.error { color: #f87171; border-color: rgba(248,113,113,.3); }
-
-      .spinner {
+      /* ── Spinner ───────────────────────────────────────────── */
+      .spin {
         display: inline-block;
-        width: 13px; height: 13px;
-        border: 2px solid var(--border);
-        border-top-color: var(--primary);
+        width: 12px; height: 12px;
+        border: 2px solid var(--border2);
+        border-top-color: var(--red);
         border-radius: 50%;
         animation: spin .6s linear infinite;
         vertical-align: middle;
-        margin-right: 6px;
+        margin-right: 5px;
       }
 
       @keyframes spin { to { transform: rotate(360deg); } }
 
-      .section-label {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--muted);
-        margin-bottom: 8px;
-        margin-top: 20px;
+      /* ── Scan all progress ─────────────────────────────────── */
+      .progress-bar {
+        height: 2px;
+        background: var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 8px;
+        display: none;
       }
 
-      .section-label:first-child { margin-top: 0; }
+      .progress-bar.active { display: block; }
 
-      .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--red), #ff7a00);
+        border-radius: 999px;
+        width: 0%;
+        transition: width .4s ease;
+        animation: pulse-progress 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-progress {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .6; }
+      }
     </style>
   </head>
   <body>
-    <div class="app">
-      <header>
-        <div class="logo">🎯</div>
-        <div>
-          <h1>DealDrop</h1>
-          <p>Find promo codes buried in YouTube videos</p>
-        </div>
-        <div class="header-right">
-          <button class="btn btn-ghost btn-sm" id="scanAllBtn">Scan all channels</button>
-        </div>
-      </header>
+    <!-- Topbar -->
+    <header class="topbar">
+      <a class="topbar-logo" href="/">
+        <div class="logo-mark">🎯</div>
+        <span class="logo-name">DealDrop</span>
+      </a>
+      <div class="topbar-divider"></div>
+      <span class="topbar-tagline">Find promo codes buried in YouTube videos</span>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" id="scanAllBtn" style="height:34px;font-size:12px;">
+          ↺ Scan all channels
+        </button>
+      </div>
+    </header>
 
-      <main>
-        <!-- Left panel -->
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+
+        <!-- Scan a video -->
         <div>
-          <!-- Paste a video -->
-          <div class="panel" style="margin-bottom:16px">
-            <div class="panel-header">
-              <span class="panel-title">Scan a video</span>
-            </div>
-            <div class="panel-body">
-              <p class="section-label">YouTube URL</p>
-              <div class="input-row">
-                <input type="url" id="videoUrl" placeholder="https://youtube.com/watch?v=..." />
-                <button class="btn btn-primary" id="scanBtn">Scan</button>
+          <div class="section-head">
+            <span class="section-title">Scan a video</span>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <div class="input-group">
+                <input class="input" id="videoUrl" type="url" placeholder="youtube.com/watch?v=…" />
+                <button class="btn btn-primary" id="scanBtn" style="padding:0 18px;">Scan</button>
               </div>
-              <div class="status-bar" id="scanStatus">Paste any YouTube link and hit Scan.</div>
-            </div>
-          </div>
-
-          <!-- Channels -->
-          <div class="panel">
-            <div class="panel-header">
-              <span class="panel-title">Watched channels</span>
-            </div>
-            <div class="panel-body">
-              <p class="section-label">Add channel URL</p>
-              <div class="input-row">
-                <input type="url" id="channelUrl" placeholder="https://youtube.com/@channel" />
-                <button class="btn btn-primary" id="addChannelBtn">Add</button>
-              </div>
-              <div class="status-bar" id="channelStatus">Add a channel to auto-scan its latest videos.</div>
-              <div class="channel-list" id="channelList"></div>
+              <div class="status" id="scanStatus">Paste any YouTube link and hit Scan.</div>
             </div>
           </div>
         </div>
 
-        <!-- Right panel: deals -->
+        <!-- Watched channels -->
         <div>
-          <div class="deals-header">
-            <h2>Deals found</h2>
-            <span class="deal-count" id="dealCount">0</span>
+          <div class="section-head">
+            <span class="section-title">Watched channels</span>
           </div>
-          <div id="dealsList"></div>
+          <div class="card">
+            <div class="card-body">
+              <div class="input-group">
+                <input class="input" id="channelUrl" type="url" placeholder="youtube.com/@channel" />
+                <button class="btn btn-primary" id="addChannelBtn" style="padding:0 14px;">Add</button>
+              </div>
+              <div class="status" id="channelStatus">Add a channel to monitor for new promo codes.</div>
+              <div class="progress-bar" id="scanAllProgress"><div class="progress-fill" id="scanAllFill"></div></div>
+              <div id="channelList" class="ch-list"></div>
+            </div>
+          </div>
         </div>
+
+      </aside>
+
+      <!-- Main area -->
+      <main class="main">
+        <div class="deals-bar">
+          <h2>Deals found</h2>
+          <span class="badge" id="dealCount">0</span>
+          <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost" id="clearAllBtn" style="height:32px;font-size:12px;display:none;">Clear all</button>
+          </div>
+        </div>
+        <div id="dealsList"></div>
       </main>
     </div>
 
+    <!-- Toast -->
     <div class="toast" id="toast"></div>
 
     <script>
       const API = "";
 
-      // ── Toast ──────────────────────────────────────────────────────────────
-      let toastTimer;
-      function toast(msg, duration = 2500) {
+      // ── Toast ─────────────────────────────────────────────────────────────
+      let _toastTimer;
+      function toast(msg, duration = 2600) {
         const el = document.getElementById("toast");
         el.textContent = msg;
         el.classList.add("show");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => el.classList.remove("show"), duration);
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => el.classList.remove("show"), duration);
       }
 
-      // ── Status bar ─────────────────────────────────────────────────────────
-      function setStatus(elId, msg, type = "") {
-        const el = document.getElementById(elId);
-        el.className = "status-bar" + (type ? ` ${type}` : "");
-        el.innerHTML = msg;
+      // ── Status ────────────────────────────────────────────────────────────
+      function setStatus(id, html, type = "") {
+        const el = document.getElementById(id);
+        el.className = "status" + (type ? " " + type : "");
+        el.innerHTML = html;
       }
 
-      // ── Deals ──────────────────────────────────────────────────────────────
+      // ── Tag colour helper ─────────────────────────────────────────────────
+      function tagClass(label) {
+        const l = label.toLowerCase();
+        if (l.includes("free") || l.includes("trial")) return "free";
+        if (l.includes("limited") || l.includes("giveaway")) return "limited";
+        return "";
+      }
+
+      // ── Deals ─────────────────────────────────────────────────────────────
       async function loadDeals() {
         const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
         renderDeals(deals);
@@ -425,78 +660,76 @@
 
       function renderDeals(deals) {
         document.getElementById("dealCount").textContent = deals.length;
+        const clearBtn = document.getElementById("clearAllBtn");
+        clearBtn.style.display = deals.length > 0 ? "" : "none";
+
         const el = document.getElementById("dealsList");
 
         if (!deals.length) {
-          el.innerHTML = `<div class="empty">
-            <div class="empty-icon">🔍</div>
-            <p>No deals found yet.<br>Scan a YouTube video or add a channel to get started.</p>
-          </div>`;
+          el.innerHTML = `
+            <div class="empty">
+              <div class="empty-icon">🔍</div>
+              <h3>No deals yet</h3>
+              <p>Paste a YouTube URL and hit <strong>Scan</strong>, or add a channel to monitor automatically.</p>
+            </div>`;
           return;
         }
 
         el.innerHTML = `<div class="deals-grid">${deals.map(dealCard).join("")}</div>`;
 
-        // Wire up copy
-        el.querySelectorAll(".deal-code").forEach(el => {
-          el.addEventListener("click", () => {
-            navigator.clipboard.writeText(el.dataset.code);
-            toast(`✅ Copied "${el.dataset.code}"`);
+        el.querySelectorAll(".deal-code-row").forEach(row => {
+          row.addEventListener("click", () => {
+            navigator.clipboard.writeText(row.dataset.code).then(() =>
+              toast(`✅ Copied "${row.dataset.code}"`)
+            ).catch(() => toast("Couldn't access clipboard"));
           });
         });
 
-        // Wire up timestamp links
-        el.querySelectorAll(".deal-ts").forEach(el => {
-          el.addEventListener("click", () => {
-            const url = `${el.dataset.url}&t=${el.dataset.seconds}s`;
-            window.open(url, "_blank");
-          });
-        });
-
-        // Wire up delete
         el.querySelectorAll(".deal-delete-btn").forEach(btn => {
           btn.addEventListener("click", async () => {
+            btn.textContent = "…";
             await fetch(`${API}/api/deals/${btn.dataset.id}`, { method: "DELETE" });
             loadDeals();
           });
         });
       }
 
-      function dealCard(deal) {
-        const codeHtml = deal.code
-          ? `<div class="deal-code" data-code="${deal.code}" title="Click to copy">
-              <span>${deal.code}</span>
-              <span class="copy-hint">click to copy</span>
-            </div>`
+      function dealCard(d) {
+        const tc = tagClass(d.label);
+        const codeHtml = d.code
+          ? `<div class="deal-code-row" data-code="${d.code}" title="Click to copy">
+               <span class="deal-code-text">${d.code}</span>
+               <span class="deal-copy-hint">click to copy</span>
+             </div>`
           : "";
 
+        const title = d.videoTitle.length > 52 ? d.videoTitle.slice(0, 52) + "…" : d.videoTitle;
+        const ctx   = d.context.length > 180  ? d.context.slice(0, 180) + "…"  : d.context;
+        const ytUrl = `${d.videoUrl}&t=${d.timestampSeconds}s`;
+
         return `<div class="deal-card">
-          <div class="deal-top">
-            <span class="deal-label">${deal.label}</span>
+          <div class="deal-head">
+            <span class="deal-tag ${tc}">${d.label}</span>
+            <button class="btn-icon deal-delete-btn" data-id="${d.id}" title="Remove deal">✕</button>
           </div>
           ${codeHtml}
-          <p class="deal-context">"${deal.context.slice(0, 160)}${deal.context.length > 160 ? "…" : ""}"</p>
-          <div class="deal-meta">
-            <span class="deal-channel">📺 ${deal.channelName}</span>
-            <a class="deal-video-link" href="${deal.videoUrl}" target="_blank" rel="noreferrer" title="${deal.videoTitle}">
-              ${deal.videoTitle.slice(0, 48)}${deal.videoTitle.length > 48 ? "…" : ""}
-            </a>
-            <span class="deal-ts" data-url="${deal.videoUrl}" data-seconds="${deal.timestampSeconds}" title="Jump to timestamp">
-              ⏱ ${deal.timestampLabel}
-            </span>
-            <button class="btn btn-ghost btn-sm deal-delete deal-delete-btn" data-id="${deal.id}" title="Remove">✕</button>
+          <p class="deal-context">"${ctx}"</p>
+          <div class="deal-footer">
+            <span class="deal-channel-label">📺 ${d.channelName}</span>
+            <a class="deal-video-link" href="${d.videoUrl}" target="_blank" rel="noreferrer" title="${d.videoTitle}">${title}</a>
+            <a class="deal-ts-btn" href="${ytUrl}" target="_blank" rel="noreferrer" title="Jump to this moment">⏱ ${d.timestampLabel}</a>
           </div>
         </div>`;
       }
 
-      // ── Scan a video ───────────────────────────────────────────────────────
-      document.getElementById("scanBtn").addEventListener("click", async () => {
+      // ── Scan a video ──────────────────────────────────────────────────────
+      async function doScan() {
         const url = document.getElementById("videoUrl").value.trim();
-        if (!url) return;
+        if (!url) { document.getElementById("videoUrl").focus(); return; }
 
         const btn = document.getElementById("scanBtn");
         btn.disabled = true;
-        setStatus("scanStatus", `<span class="spinner"></span> Fetching transcript and scanning for deals…`);
+        setStatus("scanStatus", `<span class="spin"></span>Fetching transcript…`, "busy");
 
         const res = await fetch(`${API}/api/scan`, {
           method: "POST",
@@ -507,20 +740,19 @@
         if (res.error) {
           setStatus("scanStatus", `❌ ${res.error}`, "error");
         } else if (res.skipped) {
-          setStatus("scanStatus", "⚡ Already scanned — showing previous results.", "success");
+          setStatus("scanStatus", "⚡ Already scanned — results shown below.", "ok");
         } else {
-          setStatus("scanStatus", `✅ Done. Found ${res.dealsFound} deal${res.dealsFound !== 1 ? "s" : ""}.`, "success");
+          const n = res.dealsFound;
+          setStatus("scanStatus", `✅ Found ${n} deal${n !== 1 ? "s" : ""}${n === 0 ? " — no promo codes in this video." : "."}`, "ok");
           loadDeals();
         }
-
         btn.disabled = false;
-      });
+      }
 
-      document.getElementById("videoUrl").addEventListener("keydown", e => {
-        if (e.key === "Enter") document.getElementById("scanBtn").click();
-      });
+      document.getElementById("scanBtn").addEventListener("click", doScan);
+      document.getElementById("videoUrl").addEventListener("keydown", e => { if (e.key === "Enter") doScan(); });
 
-      // ── Channels ──────────────────────────────────────────────────────────
+      // ── Add / manage channels ─────────────────────────────────────────────
       async function loadChannels() {
         const channels = await fetch(`${API}/api/channels`).then(r => r.json()).catch(() => []);
         renderChannels(channels);
@@ -531,27 +763,27 @@
         if (!channels.length) { el.innerHTML = ""; return; }
 
         el.innerHTML = channels.map(ch => `
-          <div class="channel-item">
-            <div class="channel-avatar">${ch.name.charAt(0).toUpperCase()}</div>
-            <span class="channel-name" title="${ch.name}">${ch.name}</span>
-            <div class="channel-actions">
-              <button class="btn btn-ghost btn-sm ch-scan-btn" data-id="${ch.id}" title="Scan now">↻</button>
-              <button class="btn btn-ghost btn-sm ch-delete-btn" data-id="${ch.id}" title="Remove">✕</button>
+          <div class="ch-item">
+            <div class="ch-avatar">${ch.name.charAt(0).toUpperCase()}</div>
+            <span class="ch-name" title="${ch.name}">${ch.name}</span>
+            <div class="ch-actions">
+              <button class="btn-icon ch-scan" data-id="${ch.id}" title="Scan latest videos">↻</button>
+              <button class="btn-icon ch-delete" data-id="${ch.id}" title="Remove channel">✕</button>
             </div>
-          </div>
-        `).join("");
+          </div>`).join("");
 
-        el.querySelectorAll(".ch-scan-btn").forEach(btn => {
+        el.querySelectorAll(".ch-scan").forEach(btn => {
           btn.addEventListener("click", async () => {
             btn.disabled = true;
             btn.textContent = "…";
-            setStatus("channelStatus", `<span class="spinner"></span> Scanning latest videos…`);
-            const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
+            setStatus("channelStatus", `<span class="spin"></span>Scanning latest videos…`, "busy");
+            const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" })
+              .then(r => r.json()).catch(e => ({ error: e.message }));
             if (r.error) {
               setStatus("channelStatus", `❌ ${r.error}`, "error");
             } else {
-              const newDeals = r.results.reduce((acc, v) => acc + (v.deals?.length ?? 0), 0);
-              setStatus("channelStatus", `✅ Scanned ${r.results.length} videos, found ${newDeals} new deals.`, "success");
+              const found = r.results.reduce((a, v) => a + (v.deals?.length ?? 0), 0);
+              setStatus("channelStatus", `✅ Scanned ${r.results.length} videos — ${found} new deal${found !== 1 ? "s" : ""} found.`, "ok");
               loadDeals();
             }
             btn.disabled = false;
@@ -559,21 +791,22 @@
           });
         });
 
-        el.querySelectorAll(".ch-delete-btn").forEach(btn => {
+        el.querySelectorAll(".ch-delete").forEach(btn => {
           btn.addEventListener("click", async () => {
             await fetch(`${API}/api/channels/${btn.dataset.id}`, { method: "DELETE" });
             loadChannels();
+            toast("Channel removed.");
           });
         });
       }
 
-      document.getElementById("addChannelBtn").addEventListener("click", async () => {
+      async function doAddChannel() {
         const url = document.getElementById("channelUrl").value.trim();
-        if (!url) return;
+        if (!url) { document.getElementById("channelUrl").focus(); return; }
 
         const btn = document.getElementById("addChannelBtn");
         btn.disabled = true;
-        setStatus("channelStatus", `<span class="spinner"></span> Resolving channel…`);
+        setStatus("channelStatus", `<span class="spin"></span>Resolving channel…`, "busy");
 
         const res = await fetch(`${API}/api/channels`, {
           method: "POST",
@@ -584,27 +817,35 @@
         if (res.error) {
           setStatus("channelStatus", `❌ ${res.error}`, "error");
         } else {
-          setStatus("channelStatus", `✅ Added "${res.channel.name}" — scanning latest videos in the background.`, "success");
+          setStatus("channelStatus", `✅ Added <strong>${res.channel.name}</strong> — scanning in background…`, "ok");
           document.getElementById("channelUrl").value = "";
           loadChannels();
-          setTimeout(loadDeals, 8000); // pick up background scan results
+          setTimeout(loadDeals, 9000);
         }
-
         btn.disabled = false;
-      });
+      }
 
-      document.getElementById("channelUrl").addEventListener("keydown", e => {
-        if (e.key === "Enter") document.getElementById("addChannelBtn").click();
-      });
+      document.getElementById("addChannelBtn").addEventListener("click", doAddChannel);
+      document.getElementById("channelUrl").addEventListener("keydown", e => { if (e.key === "Enter") doAddChannel(); });
 
-      // ── Scan all channels ─────────────────────────────────────────────────
+      // ── Scan all ──────────────────────────────────────────────────────────
       document.getElementById("scanAllBtn").addEventListener("click", async () => {
         const btn = document.getElementById("scanAllBtn");
+        const bar = document.getElementById("scanAllProgress");
         btn.disabled = true;
-        const r = await fetch(`${API}/api/scan-all`, { method: "POST" }).then(r => r.json()).catch(() => ({}));
-        toast(`Scanning ${r.channelsQueued ?? 0} channels in background…`);
-        btn.disabled = false;
-        setTimeout(loadDeals, 10000);
+        bar.classList.add("active");
+        const r = await fetch(`${API}/api/scan-all`, { method: "POST" })
+          .then(r => r.json()).catch(() => ({}));
+        toast(`↺ Scanning ${r.channelsQueued ?? 0} channel${r.channelsQueued !== 1 ? "s" : ""} in background…`);
+        setTimeout(() => { btn.disabled = false; bar.classList.remove("active"); loadDeals(); }, 12000);
+      });
+
+      // ── Clear all ─────────────────────────────────────────────────────────
+      document.getElementById("clearAllBtn").addEventListener("click", async () => {
+        const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
+        await Promise.all(deals.map(d => fetch(`${API}/api/deals/${d.id}`, { method: "DELETE" })));
+        loadDeals();
+        toast("All deals cleared.");
       });
 
       // ── Init ──────────────────────────────────────────────────────────────
