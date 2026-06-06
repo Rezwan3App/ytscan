@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DealDrop — YouTube Promo Finder</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --surface2: #1c1c1c;
+        --border: #2a2a2a;
+        --primary: #ff2d2d;
+        --primary-hover: #ff4444;
+        --text: #f0f0f0;
+        --muted: #888;
+        --success: #22c55e;
+        --tag-bg: #1e1e1e;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+        min-height: 100vh;
+      }
+
+      /* ── Layout ── */
+      .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .logo {
+        background: var(--primary);
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        display: grid; place-items: center;
+        font-size: 18px;
+      }
+
+      header h1 { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+      header p { color: var(--muted); font-size: 12px; margin-top: 1px; }
+
+      .header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+      main { flex: 1; display: grid; grid-template-columns: 320px 1fr; max-width: 1200px; margin: 0 auto; width: 100%; padding: 24px; gap: 24px; }
+
+      @media (max-width: 768px) {
+        main { grid-template-columns: 1fr; padding: 16px; }
+      }
+
+      /* ── Cards / Panels ── */
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .panel-title { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+
+      .panel-body { padding: 16px; }
+
+      /* ── Inputs ── */
+      .input-row { display: flex; gap: 8px; }
+
+      input[type="text"], input[type="url"] {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+        transition: border-color .15s;
+      }
+
+      input:focus { border-color: var(--primary); }
+      input::placeholder { color: var(--muted); }
+
+      /* ── Buttons ── */
+      .btn {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: opacity .15s, transform .1s;
+        white-space: nowrap;
+      }
+
+      .btn:active { transform: scale(0.97); }
+      .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+      .btn-primary { background: var(--primary); color: #fff; }
+      .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+
+      .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+      .btn-ghost:hover:not(:disabled) { border-color: var(--muted); }
+
+      .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+      /* ── Channel list ── */
+      .channel-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+
+      .channel-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--surface2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
+      .channel-avatar {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: grid; place-items: center;
+        font-size: 14px;
+        font-weight: 800;
+        flex-shrink: 0;
+        color: #fff;
+      }
+
+      .channel-name { font-weight: 600; font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .channel-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+      /* ── Deal cards ── */
+      .deals-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .deals-header h2 { font-size: 16px; font-weight: 800; }
+      .deal-count {
+        background: var(--primary);
+        color: #fff;
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .deals-grid { display: flex; flex-direction: column; gap: 12px; }
+
+      .deal-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        transition: border-color .15s;
+      }
+
+      .deal-card:hover { border-color: #444; }
+
+      .deal-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .deal-label {
+        display: inline-block;
+        background: rgba(255,45,45,.15);
+        color: var(--primary);
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+
+      .deal-code {
+        font-family: "Courier New", monospace;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        user-select: all;
+      }
+
+      .deal-code:hover { border-color: var(--primary); }
+      .copy-hint { font-size: 11px; color: var(--muted); font-family: system-ui; font-weight: 500; letter-spacing: 0; }
+
+      .deal-context {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+        font-style: italic;
+      }
+
+      .deal-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .deal-channel {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .deal-video-link {
+        font-size: 12px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .deal-video-link:hover { text-decoration: underline; }
+
+      .deal-ts {
+        font-size: 12px;
+        background: var(--surface2);
+        border-radius: 6px;
+        padding: 2px 8px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .deal-ts:hover { color: var(--text); }
+
+      .deal-delete { margin-left: auto; }
+
+      /* ── Empty / loading states ── */
+      .empty {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--muted);
+      }
+
+      .empty-icon { font-size: 40px; margin-bottom: 12px; }
+      .empty p { line-height: 1.6; font-size: 13px; }
+
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1a1a1a;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity .25s;
+        pointer-events: none;
+      }
+
+      .toast.show { opacity: 1; }
+
+      .status-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 12px;
+        min-height: 38px;
+        line-height: 1.5;
+      }
+
+      .status-bar.success { color: var(--success); border-color: rgba(34,197,94,.3); }
+      .status-bar.error { color: #f87171; border-color: rgba(248,113,113,.3); }
+
+      .spinner {
+        display: inline-block;
+        width: 13px; height: 13px;
+        border: 2px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin .6s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        margin-bottom: 8px;
+        margin-top: 20px;
+      }
+
+      .section-label:first-child { margin-top: 0; }
+
+      .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="logo">🎯</div>
+        <div>
+          <h1>DealDrop</h1>
+          <p>Find promo codes buried in YouTube videos</p>
+        </div>
+        <div class="header-right">
+          <button class="btn btn-ghost btn-sm" id="scanAllBtn">Scan all channels</button>
+        </div>
+      </header>
+
+      <main>
+        <!-- Left panel -->
+        <div>
+          <!-- Paste a video -->
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-header">
+              <span class="panel-title">Scan a video</span>
+            </div>
+            <div class="panel-body">
+              <p class="section-label">YouTube URL</p>
+              <div class="input-row">
+                <input type="url" id="videoUrl" placeholder="https://youtube.com/watch?v=..." />
+                <button class="btn btn-primary" id="scanBtn">Scan</button>
+              </div>
+              <div class="status-bar" id="scanStatus">Paste any YouTube link and hit Scan.</div>
+            </div>
+          </div>
+
+          <!-- Channels -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Watched channels</span>
+            </div>
+            <div class="panel-body">
+              <p class="section-label">Add channel URL</p>
+              <div class="input-row">
+                <input type="url" id="channelUrl" placeholder="https://youtube.com/@channel" />
+                <button class="btn btn-primary" id="addChannelBtn">Add</button>
+              </div>
+              <div class="status-bar" id="channelStatus">Add a channel to auto-scan its latest videos.</div>
+              <div class="channel-list" id="channelList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right panel: deals -->
+        <div>
+          <div class="deals-header">
+            <h2>Deals found</h2>
+            <span class="deal-count" id="dealCount">0</span>
+          </div>
+          <div id="dealsList"></div>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const API = "";
+
+      // ── Toast ──────────────────────────────────────────────────────────────
+      let toastTimer;
+      function toast(msg, duration = 2500) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), duration);
+      }
+
+      // ── Status bar ─────────────────────────────────────────────────────────
+      function setStatus(elId, msg, type = "") {
+        const el = document.getElementById(elId);
+        el.className = "status-bar" + (type ? ` ${type}` : "");
+        el.innerHTML = msg;
+      }
+
+      // ── Deals ──────────────────────────────────────────────────────────────
+      async function loadDeals() {
+        const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
+        renderDeals(deals);
+      }
+
+      function renderDeals(deals) {
+        document.getElementById("dealCount").textContent = deals.length;
+        const el = document.getElementById("dealsList");
+
+        if (!deals.length) {
+          el.innerHTML = `<div class="empty">
+            <div class="empty-icon">🔍</div>
+            <p>No deals found yet.<br>Scan a YouTube video or add a channel to get started.</p>
+          </div>`;
+          return;
+        }
+
+        el.innerHTML = `<div class="deals-grid">${deals.map(dealCard).join("")}</div>`;
+
+        // Wire up copy
+        el.querySelectorAll(".deal-code").forEach(el => {
+          el.addEventListener("click", () => {
+            navigator.clipboard.writeText(el.dataset.code);
+            toast(`✅ Copied "${el.dataset.code}"`);
+          });
+        });
+
+        // Wire up timestamp links
+        el.querySelectorAll(".deal-ts").forEach(el => {
+          el.addEventListener("click", () => {
+            const url = `${el.dataset.url}&t=${el.dataset.seconds}s`;
+            window.open(url, "_blank");
+          });
+        });
+
+        // Wire up delete
+        el.querySelectorAll(".deal-delete-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            await fetch(`${API}/api/deals/${btn.dataset.id}`, { method: "DELETE" });
+            loadDeals();
+          });
+        });
+      }
+
+      function dealCard(deal) {
+        const codeHtml = deal.code
+          ? `<div class="deal-code" data-code="${deal.code}" title="Click to copy">
+              <span>${deal.code}</span>
+              <span class="copy-hint">click to copy</span>
+            </div>`
+          : "";
+
+        return `<div class="deal-card">
+          <div class="deal-top">
+            <span class="deal-label">${deal.label}</span>
+          </div>
+          ${codeHtml}
+          <p class="deal-context">"${deal.context.slice(0, 160)}${deal.context.length > 160 ? "…" : ""}"</p>
+          <div class="deal-meta">
+            <span class="deal-channel">📺 ${deal.channelName}</span>
+            <a class="deal-video-link" href="${deal.videoUrl}" target="_blank" rel="noreferrer" title="${deal.videoTitle}">
+              ${deal.videoTitle.slice(0, 48)}${deal.videoTitle.length > 48 ? "…" : ""}
+            </a>
+            <span class="deal-ts" data-url="${deal.videoUrl}" data-seconds="${deal.timestampSeconds}" title="Jump to timestamp">
+              ⏱ ${deal.timestampLabel}
+            </span>
+            <button class="btn btn-ghost btn-sm deal-delete deal-delete-btn" data-id="${deal.id}" title="Remove">✕</button>
+          </div>
+        </div>`;
+      }
+
+      // ── Scan a video ───────────────────────────────────────────────────────
+      document.getElementById("scanBtn").addEventListener("click", async () => {
+        const url = document.getElementById("videoUrl").value.trim();
+        if (!url) return;
+
+        const btn = document.getElementById("scanBtn");
+        btn.disabled = true;
+        setStatus("scanStatus", `<span class="spinner"></span> Fetching transcript and scanning for deals…`);
+
+        const res = await fetch(`${API}/api/scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+        if (res.error) {
+          setStatus("scanStatus", `❌ ${res.error}`, "error");
+        } else if (res.skipped) {
+          setStatus("scanStatus", "⚡ Already scanned — showing previous results.", "success");
+        } else {
+          setStatus("scanStatus", `✅ Done. Found ${res.dealsFound} deal${res.dealsFound !== 1 ? "s" : ""}.`, "success");
+          loadDeals();
+        }
+
+        btn.disabled = false;
+      });
+
+      document.getElementById("videoUrl").addEventListener("keydown", e => {
+        if (e.key === "Enter") document.getElementById("scanBtn").click();
+      });
+
+      // ── Channels ──────────────────────────────────────────────────────────
+      async function loadChannels() {
+        const channels = await fetch(`${API}/api/channels`).then(r => r.json()).catch(() => []);
+        renderChannels(channels);
+      }
+
+      function renderChannels(channels) {
+        const el = document.getElementById("channelList");
+        if (!channels.length) { el.innerHTML = ""; return; }
+
+        el.innerHTML = channels.map(ch => `
+          <div class="channel-item">
+            <div class="channel-avatar">${ch.name.charAt(0).toUpperCase()}</div>
+            <span class="channel-name" title="${ch.name}">${ch.name}</span>
+            <div class="channel-actions">
+              <button class="btn btn-ghost btn-sm ch-scan-btn" data-id="${ch.id}" title="Scan now">↻</button>
+              <button class="btn btn-ghost btn-sm ch-delete-btn" data-id="${ch.id}" title="Remove">✕</button>
+            </div>
+          </div>
+        `).join("");
+
+        el.querySelectorAll(".ch-scan-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            btn.textContent = "…";
+            setStatus("channelStatus", `<span class="spinner"></span> Scanning latest videos…`);
+            const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
+            if (r.error) {
+              setStatus("channelStatus", `❌ ${r.error}`, "error");
+            } else {
+              const newDeals = r.results.reduce((acc, v) => acc + (v.deals?.length ?? 0), 0);
+              setStatus("channelStatus", `✅ Scanned ${r.results.length} videos, found ${newDeals} new deals.`, "success");
+              loadDeals();
+            }
+            btn.disabled = false;
+            btn.textContent = "↻";
+          });
+        });
+
+        el.querySelectorAll(".ch-delete-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            await fetch(`${API}/api/channels/${btn.dataset.id}`, { method: "DELETE" });
+            loadChannels();
+          });
+        });
+      }
+
+      document.getElementById("addChannelBtn").addEventListener("click", async () => {
+        const url = document.getElementById("channelUrl").value.trim();
+        if (!url) return;
+
+        const btn = document.getElementById("addChannelBtn");
+        btn.disabled = true;
+        setStatus("channelStatus", `<span class="spinner"></span> Resolving channel…`);
+
+        const res = await fetch(`${API}/api/channels`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        }).then(r => r.json()).catch(e => ({ error: e.message }));
+
+        if (res.error) {
+          setStatus("channelStatus", `❌ ${res.error}`, "error");
+        } else {
+          setStatus("channelStatus", `✅ Added "${res.channel.name}" — scanning latest videos in the background.`, "success");
+          document.getElementById("channelUrl").value = "";
+          loadChannels();
+          setTimeout(loadDeals, 8000); // pick up background scan results
+        }
+
+        btn.disabled = false;
+      });
+
+      document.getElementById("channelUrl").addEventListener("keydown", e => {
+        if (e.key === "Enter") document.getElementById("addChannelBtn").click();
+      });
+
+      // ── Scan all channels ─────────────────────────────────────────────────
+      document.getElementById("scanAllBtn").addEventListener("click", async () => {
+        const btn = document.getElementById("scanAllBtn");
+        btn.disabled = true;
+        const r = await fetch(`${API}/api/scan-all`, { method: "POST" }).then(r => r.json()).catch(() => ({}));
+        toast(`Scanning ${r.channelsQueued ?? 0} channels in background…`);
+        btn.disabled = false;
+        setTimeout(loadDeals, 10000);
+      });
+
+      // ── Init ──────────────────────────────────────────────────────────────
+      loadDeals();
+      loadChannels();
+    </script>
+  </body>
+</html>
