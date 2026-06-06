@@ -46,7 +46,18 @@ except Exception as e:
     throw new Error("Transcript parse failed");
   }
 
-  if (parsed?.error) throw new Error(parsed.error);
+  if (parsed?.error) {
+    const msg = String(parsed.error);
+    if (/IP|blocked|RequestBlocked|cloud provider|too many requests/i.test(msg)) {
+      throw new Error(
+        "YouTube is blocking transcript requests from this server's IP (a known cloud-provider limitation). This works when YTScan runs on a home/residential connection or behind a proxy. Channel watching and deal storage still work.",
+      );
+    }
+    if (/disabled|no transcript|TranscriptsDisabled|could not retrieve a transcript/i.test(msg)) {
+      throw new Error("No transcript is available for this video (captions may be disabled).");
+    }
+    throw new Error(msg.split("\n")[0] || "Transcript fetch failed.");
+  }
   return parsed as Snippet[];
 }
 
@@ -151,13 +162,35 @@ export async function resolveChannelId(url: string): Promise<{ id: string; name:
       },
     });
     const html = await res.text();
-    const idMatch = html.match(/"channelId"\s*:\s*"(UC[^"]{22})"/);
-    const nameMatch = html.match(/"channelName"\s*:\s*"([^"]+)"/) || html.match(/"author"\s*:\s*"([^"]+)"/);
-    if (!idMatch) return null;
-    return { id: idMatch[1], name: nameMatch?.[1] ?? url };
+
+    // Channel ID — prefer the page owner's own ID, not the first "channelId"
+    // match (which is usually a recommended/related channel).
+    const id =
+      html.match(/"externalId"\s*:\s*"(UC[\w-]{22})"/)?.[1] ||
+      html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1] ||
+      html.match(/<meta property="og:url" content="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1];
+    if (!id) return null;
+
+    // Name — og:title is the clean channel name; fall back to <title>.
+    const rawName =
+      html.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ||
+      html.match(/<title>([^<]+?)(?:\s*-\s*YouTube)?<\/title>/)?.[1];
+    const name = rawName ? decodeEntities(rawName.replace(/\s*-\s*YouTube\s*$/, "").trim()) : id;
+
+    return { id, name };
   } catch {
     return null;
   }
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\\u0026/g, "&");
 }
 
 // ── Public scan functions ────────────────────────────────────────────────────
