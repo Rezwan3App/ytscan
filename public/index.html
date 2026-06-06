@@ -142,6 +142,19 @@
     .hero-status.err { color: var(--red); }
     .hero-status.busy { color: var(--amber); }
 
+    .hero-demo-btn {
+      margin-top: 18px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      border-radius: 999px;
+      padding: 9px 20px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .hero-demo-btn:hover { border-color: var(--red); color: var(--red); background: rgba(255,59,48,.05); }
+
     /* ── HOW IT WORKS ── */
     .how {
       position: relative; z-index: 2; max-width: 880px; margin: 56px auto 0; padding: 0 24px;
@@ -268,6 +281,83 @@
     /* ── REVEAL ── */
     .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
     .reveal.in { opacity: 1; transform: none; }
+
+    /* ── SMS ALERTS ── */
+    .sms-wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+    .sms-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      background: linear-gradient(135deg, rgba(255,59,48,.08) 0%, var(--layer1) 55%);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 32px;
+      overflow: hidden;
+    }
+    .sms-card::before {
+      content: "";
+      position: absolute; top: -40%; right: -10%;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(255,59,48,.16) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .sms-left { display: flex; align-items: flex-start; gap: 14px; position: relative; flex: 1; min-width: 240px; }
+    .sms-left h3 { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
+    .sms-left p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; max-width: 360px; }
+    .sms-right { position: relative; width: 300px; flex-shrink: 0; }
+    @media(max-width:680px){
+      .sms-right { width: 100%; }
+    }
+    .sms-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 10px var(--green); flex-shrink: 0;
+      animation: blink 2.2s ease-in-out infinite;
+    }
+    .sms-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+    .sms-btn-row .btn { flex: 1; }
+    .sms-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; position: relative; }
+    .sms-ico {
+      width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+      background: var(--red); display: grid; place-items: center; font-size: 22px;
+      box-shadow: 0 8px 24px rgba(255,59,48,.35);
+    }
+    .sms-head h3 { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
+    .sms-head p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .sms-body { position: relative; margin-top: 18px; }
+    .sms-row { display: flex; gap: 10px; }
+    @media(max-width:520px){ .sms-row { flex-direction: column; } }
+    .sms-row .inp { flex: 1; }
+    .sms-note {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 14px; font-size: 12px; color: var(--muted2);
+    }
+    .sms-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+      background: var(--amber-dim, rgba(255,214,10,.12)); color: var(--amber);
+      border: 1px solid rgba(255,214,10,.25);
+      border-radius: 6px; padding: 2px 7px; margin-left: 8px;
+    }
+    .sms-active {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: rgba(48,209,88,.07); border: 1px solid rgba(48,209,88,.22);
+      border-radius: 13px; padding: 14px 16px; position: relative;
+    }
+    .sms-active-info { font-size: 13px; }
+    .sms-active-info b { color: var(--green); }
+    .sms-active-phone { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .sms-preview {
+      margin-top: 14px;
+      background: var(--layer2); border: 1px solid var(--border);
+      border-radius: 13px; padding: 14px 16px;
+      font-size: 12.5px; line-height: 1.5; color: var(--text2);
+      white-space: pre-wrap; font-family: var(--mono, monospace);
+      max-height: 0; overflow: hidden; opacity: 0;
+      transition: max-height .3s, opacity .3s, padding .3s, margin .3s;
+    }
+    .sms-preview.show { max-height: 420px; opacity: 1; }
   </style>
 </head>
 <body>
@@ -298,6 +388,7 @@
     <button class="btn btn-red" id="heroScanBtn">Scan</button>
   </div>
   <p class="hero-status" id="heroStatus">Try it — paste any YouTube video above.</p>
+  <button class="hero-demo-btn" id="demoBtn">▶ Try the demo · Linus Tech Tips + MKBHD</button>
 </section>
 
 <!-- HOW IT WORKS -->
@@ -346,6 +437,40 @@
         <button class="btn btn-red btn-full" id="addChannelBtn">Add channel</button>
         <div class="chip idle" id="channelStatus">Add channels to monitor.</div>
         <div class="ch-list" id="channelList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SMS ALERTS -->
+<h2 class="section-title">Get deals texted to you</h2>
+<p class="section-sub">Don't even open the app. When a watched channel drops a new video, we text you the codes you'd have missed.</p>
+<div class="section">
+  <div class="sms-card reveal">
+    <div class="sms-left">
+      <div class="sms-ico">💬</div>
+      <div>
+        <h3 id="smsHeadline">Text me the deals</h3>
+        <p id="smsDesc">Enter your number. We'll send a quick confirmation, then alert you whenever a new video from your watched channels has a promo code.</p>
+        <div class="sms-badge" id="smsModeBadge" style="display:none"></div>
+      </div>
+    </div>
+    <div class="sms-right">
+      <div id="smsForm">
+        <input class="inp" id="phoneInput" type="tel" placeholder="+1 415 555 2671" autocomplete="tel"/>
+        <button class="btn btn-red btn-full" id="subscribeBtn">Text me deals</button>
+        <div class="chip idle" id="smsStatus">No spam. Reply STOP anytime.</div>
+      </div>
+      <div id="smsManage" style="display:none">
+        <div class="sms-active">
+          <span class="sms-dot"></span>
+          <span>Alerts on for <b id="smsPhone"></b></span>
+        </div>
+        <div class="sms-btn-row">
+          <button class="btn btn-ghost" id="testTextBtn">Send test text</button>
+          <button class="btn btn-ghost btn-danger" id="unsubBtn">Turn off</button>
+        </div>
+        <div class="chip idle" id="smsStatus2">You're all set.</div>
       </div>
     </div>
   </div>
@@ -550,9 +675,90 @@ const io = new IntersectionObserver((entries) => {
 }, { threshold: 0.12 });
 document.querySelectorAll(".reveal").forEach(el => io.observe(el));
 
+// ── SMS alerts ──
+async function loadSms() {
+  const s = await fetch(`${API}/api/sms`).then(r => r.json()).catch(() => null);
+  if (!s) return;
+  const form = document.getElementById("smsForm");
+  const manage = document.getElementById("smsManage");
+  const badge = document.getElementById("smsModeBadge");
+
+  if (!s.smsConfigured) {
+    badge.style.display = "inline-block";
+    badge.textContent = "Demo mode";
+    badge.title = "No SMS provider connected yet — texts are logged, not sent. Add Twilio keys to go live.";
+  } else {
+    badge.style.display = "none";
+  }
+
+  if (s.subscribed) {
+    form.style.display = "none";
+    manage.style.display = "block";
+    document.getElementById("smsPhone").textContent = s.phoneMasked;
+  } else {
+    form.style.display = "block";
+    manage.style.display = "none";
+  }
+}
+
+document.getElementById("subscribeBtn").addEventListener("click", async () => {
+  const phone = document.getElementById("phoneInput").value.trim();
+  if (!phone) return;
+  const btn = document.getElementById("subscribeBtn");
+  btn.disabled = true;
+  setChip("smsStatus", `${sp()} Signing you up…`, "busy");
+  const res = await fetch(`${API}/api/sms/subscribe`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone }),
+  }).then(r => r.json()).catch(e => ({ error: e.message }));
+  btn.disabled = false;
+  if (res.error) { setChip("smsStatus", `❌  ${res.error}`, "err"); return; }
+  const modeNote = res.mode === "demo" ? " (demo — text logged, not sent)" : "";
+  setChip("smsStatus", `✅  Confirmation sent to ${res.phoneMasked}${modeNote}.`, "ok");
+  toast(`💬  You're subscribed${modeNote}`);
+  loadSms();
+});
+document.getElementById("phoneInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("subscribeBtn").click(); });
+
+document.getElementById("testTextBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("testTextBtn");
+  btn.disabled = true;
+  setChip("smsStatus2", `${sp()} Sending test text…`, "busy");
+  const res = await fetch(`${API}/api/sms/test`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
+  btn.disabled = false;
+  if (res.error) { setChip("smsStatus2", `❌  ${res.error}`, "err"); return; }
+  const modeNote = res.mode === "demo" ? " (demo — logged, not sent)" : "";
+  setChip("smsStatus2", `✅  Test text sent${modeNote}.`, "ok");
+});
+
+document.getElementById("unsubBtn").addEventListener("click", async () => {
+  await fetch(`${API}/api/sms/unsubscribe`, { method: "POST" }).catch(() => {});
+  toast("🔕  Alerts turned off");
+  loadSms();
+});
+
+// ── Demo ──
+document.getElementById("demoBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("demoBtn");
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.innerHTML = `${sp()} Loading demo…`;
+  const res = await fetch(`${API}/api/demo/load`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
+  btn.disabled = false;
+  btn.textContent = orig;
+  if (res.error) { toast(`❌  ${res.error}`); return; }
+  const texted = res.texted ? " · texted you the codes" : "";
+  toast(`✅  Loaded ${res.dealsSeeded} deals from LTT + MKBHD${texted}`);
+  loadChannels();
+  loadDeals();
+  loadSms();
+  document.querySelector(".deals-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 // ── Init ──
 loadDeals();
 loadChannels();
+loadSms();
 </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { notifyMissedDeals } from "./notify";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -186,13 +187,40 @@ export async function scanChannel(channelId: string) {
 
   const videos = await fetchRssVideos(channelId, 5);
   const results = [];
+  const freshDeals: any[] = [];
   for (const v of videos) {
     try {
       const r = await scanVideo(v.id, v.title, v.url, channel.name);
       results.push({ videoId: v.id, title: v.title, ...r });
+      if (!r.skipped && r.deals.length) {
+        for (const d of r.deals) {
+          freshDeals.push({
+            channelName: channel.name,
+            videoTitle: v.title,
+            videoUrl: v.url,
+            label: d.label,
+            code: d.code,
+            timestampSeconds: d.timestampSeconds,
+            timestampLabel: d.timestampLabel,
+          });
+        }
+      }
     } catch (e: any) {
       results.push({ videoId: v.id, title: v.title, error: e.message });
     }
   }
+
+  // Text the subscriber about deals they'd have missed (no-op if not subscribed).
+  if (freshDeals.length) {
+    await notifyMissedDeals(freshDeals, channel.name).catch(console.error);
+  }
+
   return results;
 }
+
+// ── Demo channel presets ─────────────────────────────────────────────────────
+
+export const DEMO_CHANNELS = [
+  { id: "UCXuqSBlHAE6Xw-yeJA0Tunw", name: "Linus Tech Tips", url: "https://www.youtube.com/@LinusTechTips" },
+  { id: "UCBJycsmduvYEL83R_U4JriQ", name: "MKBHD", url: "https://www.youtube.com/@mkbhd" },
+];

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 
-const DB_PATH = "./dealdrop.json";
+const DB_PATH = "./ytscan.json";
 
 interface Channel {
   id: string;
@@ -23,21 +23,49 @@ interface Deal {
   detectedAt: string;
 }
 
+interface Subscriber {
+  phone: string;
+  enabled: boolean;
+  subscribedAt: string;
+}
+
+interface Notification {
+  id: number;
+  phone: string;
+  body: string;
+  dealCount: number;
+  source: string;
+  mode: "twilio" | "demo";
+  ok: boolean;
+  error: string | null;
+  sentAt: string;
+}
+
 interface DbData {
   channels: Channel[];
   deals: Deal[];
   scannedVideos: string[];
   nextDealId: number;
+  subscriber: Subscriber | null;
+  notifications: Notification[];
+  nextNotificationId: number;
 }
 
 function load(): DbData {
-  if (!existsSync(DB_PATH)) {
-    return { channels: [], deals: [], scannedVideos: [], nextDealId: 1 };
-  }
+  const fallback: DbData = {
+    channels: [],
+    deals: [],
+    scannedVideos: [],
+    nextDealId: 1,
+    subscriber: null,
+    notifications: [],
+    nextNotificationId: 1,
+  };
+  if (!existsSync(DB_PATH)) return fallback;
   try {
-    return JSON.parse(readFileSync(DB_PATH, "utf8"));
+    return { ...fallback, ...JSON.parse(readFileSync(DB_PATH, "utf8")) };
   } catch {
-    return { channels: [], deals: [], scannedVideos: [], nextDealId: 1 };
+    return fallback;
   }
 }
 
@@ -50,7 +78,8 @@ export const db = {
 
   addChannel: (channel: Omit<Channel, "addedAt">): Channel => {
     const data = load();
-    if (data.channels.find((c) => c.id === channel.id)) return data.channels.find((c) => c.id === channel.id)!;
+    const existing = data.channels.find((c) => c.id === channel.id);
+    if (existing) return existing;
     const entry: Channel = { ...channel, addedAt: new Date().toISOString() };
     data.channels.push(entry);
     save(data);
@@ -87,5 +116,42 @@ export const db = {
       data.scannedVideos.push(videoId);
       save(data);
     }
+  },
+
+  // ── Subscriber (single user for MVP) ──────────────────────────────────────
+  getSubscriber: (): Subscriber | null => load().subscriber,
+
+  setSubscriber: (phone: string): Subscriber => {
+    const data = load();
+    data.subscriber = { phone, enabled: true, subscribedAt: new Date().toISOString() };
+    save(data);
+    return data.subscriber;
+  },
+
+  setSubscriberEnabled: (enabled: boolean): Subscriber | null => {
+    const data = load();
+    if (data.subscriber) {
+      data.subscriber.enabled = enabled;
+      save(data);
+    }
+    return data.subscriber;
+  },
+
+  removeSubscriber: () => {
+    const data = load();
+    data.subscriber = null;
+    save(data);
+  },
+
+  // ── Notifications log ─────────────────────────────────────────────────────
+  getNotifications: (): Notification[] => load().notifications,
+
+  addNotification: (n: Omit<Notification, "id" | "sentAt">): Notification => {
+    const data = load();
+    const entry: Notification = { ...n, id: data.nextNotificationId++, sentAt: new Date().toISOString() };
+    data.notifications.unshift(entry);
+    if (data.notifications.length > 50) data.notifications = data.notifications.slice(0, 50);
+    save(data);
+    return entry;
   },
 };
