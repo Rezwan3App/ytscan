@@ -28,8 +28,7 @@ interface DealLike {
   videoUrl: string;
   label: string;
   code: string | null;
-  timestampSeconds: number;
-  timestampLabel: string;
+  dealUrl: string | null;
 }
 
 export function buildDealSms(deals: DealLike[]): string {
@@ -52,8 +51,8 @@ export function buildDealSms(deals: DealLike[]): string {
 
     for (const d of vidDeals.slice(0, 4)) {
       const codePart = d.code ? `Code ${d.code}` : d.label;
-      const link = `${videoUrl}&t=${d.timestampSeconds}s`;
-      lines.push(`• ${codePart} (⏱ ${d.timestampLabel}) ${link}`);
+      const link = d.dealUrl || videoUrl;
+      lines.push(`• ${codePart} → ${link}`);
     }
     if (vidDeals.length > 4) lines.push(`…+${vidDeals.length - 4} more on YTScan`);
     blocks.push(lines.join("\n"));

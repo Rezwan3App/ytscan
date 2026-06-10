@@ -2,7 +2,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic } from "hono/bun";
 import { db } from "./db";
-import { scanVideo, scanChannel, resolveChannelId } from "./scanner";
+import {
+  searchChannels,
+  previewChannel,
+  scanChannelAndSave,
+  resolveChannelName,
+} from "./scanner";
 import {
   normalizePhone,
   maskPhone,
@@ -18,24 +23,28 @@ app.use("*", cors());
 // ── Static frontend ──────────────────────────────────────────────────────────
 app.use("/*", serveStatic({ root: "./public" }));
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function extractVideoId(url: string): string | null {
-  const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
-
-async function fetchVideoTitle(videoId: string): Promise<string> {
+// ── API: Channel search (type a YouTuber name → suggestions) ─────────────────
+app.get("/api/search", async (c) => {
+  const q = c.req.query("q")?.trim();
+  if (!q || q.length < 2) return c.json({ results: [] });
   try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
-    const html = await res.text();
-    const m = html.match(/<title>([^<]+)<\/title>/);
-    return m ? m[1].replace(" - YouTube", "").trim() : videoId;
-  } catch {
-    return videoId;
+    const results = await searchChannels(q);
+    return c.json({ results });
+  } catch (e: any) {
+    return c.json({ error: e.message, results: [] }, 500);
   }
-}
+});
+
+// ── API: Preview a channel's last 5 videos + detected deals ──────────────────
+app.get("/api/channel/:id/preview", async (c) => {
+  const name = c.req.query("name") ?? "";
+  try {
+    const videos = await previewChannel(c.req.param("id"), name, 5);
+    return c.json({ videos });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
 
 // ── API: Deals ───────────────────────────────────────────────────────────────
 app.get("/api/deals", (c) => c.json(db.getDeals()));
@@ -45,33 +54,29 @@ app.delete("/api/deals/:id", (c) => {
   return c.json({ ok: true });
 });
 
-// ── API: Scan a video ────────────────────────────────────────────────────────
-app.post("/api/scan", async (c) => {
-  const { url } = await c.req.json<{ url: string }>();
-  const videoId = extractVideoId(url);
-  if (!videoId) return c.json({ error: "Could not extract video ID from URL" }, 400);
-
-  const title = await fetchVideoTitle(videoId);
-  try {
-    const result = await scanVideo(videoId, title, `https://www.youtube.com/watch?v=${videoId}`, "Direct scan");
-    return c.json({ ok: true, dealsFound: result.deals.length, skipped: result.skipped });
-  } catch (e: any) {
-    return c.json({ error: e.message }, 500);
-  }
-});
-
-// ── API: Channels ────────────────────────────────────────────────────────────
+// ── API: Watched channels ────────────────────────────────────────────────────
 app.get("/api/channels", (c) => c.json(db.getChannels()));
 
 app.post("/api/channels", async (c) => {
-  const { url } = await c.req.json<{ url: string }>();
-  const resolved = await resolveChannelId(url);
-  if (!resolved) return c.json({ error: "Could not resolve channel. Make sure it's a valid YouTube channel URL." }, 400);
+  const { id, name, url, thumbnail } = await c.req.json<{
+    id?: string;
+    name?: string;
+    url?: string;
+    thumbnail?: string;
+  }>();
 
-  const channel = db.addChannel({ id: resolved.id, name: resolved.name, url });
+  if (!id) return c.json({ error: "Missing channel id." }, 400);
+  const chName = name ?? (await resolveChannelName(id));
 
-  // Kick off background scan (don't await — return immediately)
-  scanChannel(resolved.id).catch(console.error);
+  const channel = db.addChannel({
+    id,
+    name: chName,
+    url: url ?? `https://www.youtube.com/channel/${id}`,
+    thumbnail: thumbnail ?? null,
+  });
+
+  // Scan + text deals in the background.
+  scanChannelAndSave(id, chName, 5).catch(console.error);
 
   return c.json({ ok: true, channel });
 });
@@ -82,28 +87,23 @@ app.delete("/api/channels/:id", (c) => {
 });
 
 app.post("/api/channels/:id/scan", async (c) => {
+  const name = c.req.query("name") ?? "";
   try {
-    const results = await scanChannel(c.req.param("id"));
-    return c.json({ ok: true, results });
+    const channelName = name || (await resolveChannelName(c.req.param("id")));
+    const result = await scanChannelAndSave(c.req.param("id"), channelName, 5);
+    return c.json({ ok: true, newDeals: result.newDeals, videos: result.videos.length });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
 });
 
-// ── API: Scan all channels ───────────────────────────────────────────────────
 app.post("/api/scan-all", async (c) => {
   const channels = db.getChannels();
-  // fire-and-forget each channel
-  for (const ch of channels) scanChannel(ch.id).catch(console.error);
+  for (const ch of channels) scanChannelAndSave(ch.id, ch.name, 5).catch(console.error);
   return c.json({ ok: true, channelsQueued: channels.length });
 });
 
 // ── API: SMS subscriber ──────────────────────────────────────────────────────
-const DEMO_CHANNELS = [
-  { id: "UCXuqSBlHAE6Xw-yeJA0Tunw", name: "Linus Tech Tips", url: "https://www.youtube.com/@LinusTechTips" },
-  { id: "UCBJycsmduvYEL83R_U4JriQ", name: "MKBHD", url: "https://www.youtube.com/@mkbhd" },
-];
-
 app.get("/api/sms", (c) => {
   const sub = db.getSubscriber();
   return c.json({
@@ -120,11 +120,10 @@ app.post("/api/sms/subscribe", async (c) => {
   if (!normalized) {
     return c.json({ error: "Enter a valid phone number (e.g. +1 415 555 2671 or 4155552671)." }, 400);
   }
-  const sub = db.setSubscriber(normalized);
+  db.setSubscriber(normalized);
 
-  // Send a confirmation text right away.
   const welcome =
-    "🎯 You're set on YTScan. We'll text you the promo codes & deals buried in new videos from the channels you watch — so you never have to sit through the sponsor read again.";
+    "🎯 You're set on YTScan. We'll text you the promo codes & deals buried in new videos from the channels you follow — so you never have to sit through the sponsor read again.";
   const result = await sendSms(normalized, welcome);
   db.addNotification({
     phone: normalized,
@@ -136,12 +135,7 @@ app.post("/api/sms/subscribe", async (c) => {
     error: result.error ?? null,
   });
 
-  return c.json({
-    ok: true,
-    phoneMasked: maskPhone(normalized),
-    mode: result.mode,
-    smsConfigured: SMS_CONFIGURED,
-  });
+  return c.json({ ok: true, phoneMasked: maskPhone(normalized), mode: result.mode, smsConfigured: SMS_CONFIGURED });
 });
 
 app.post("/api/sms/toggle", async (c) => {
@@ -158,7 +152,6 @@ app.delete("/api/sms", (c) => {
 
 app.get("/api/notifications", (c) => c.json(db.getNotifications()));
 
-// Send a test text of whatever deals already exist (or a sample).
 app.post("/api/sms/test", async (c) => {
   const sub = db.getSubscriber();
   if (!sub) return c.json({ error: "Add your number first." }, 400);
@@ -173,13 +166,12 @@ app.post("/api/sms/test", async (c) => {
         videoUrl: d.videoUrl,
         label: d.label,
         code: d.code,
-        timestampSeconds: d.timestampSeconds,
-        timestampLabel: d.timestampLabel,
+        dealUrl: d.dealUrl,
       })),
     );
   } else {
     body =
-      "🎯 Sample YTScan alert: \"Use code LTT for 10% off\" (⏱ 2:14). Real alerts arrive automatically when channels you watch drop new videos.";
+      '🎯 Sample YTScan alert: "Use code LTT for 10% off your order" — link in description. Real alerts arrive automatically when channels you follow drop new videos.';
   }
 
   const result = await sendSms(sub.phone, body);
@@ -193,79 +185,6 @@ app.post("/api/sms/test", async (c) => {
     error: result.error ?? null,
   });
   return c.json({ ok: result.ok, mode: result.mode, error: result.error });
-});
-
-// ── API: Demo (LTT + MKBHD) ──────────
-const DEMO_DEALS = [
-  {
-    videoId: "demo-ltt-1",
-    videoTitle: "We Built the ULTIMATE Gaming Setup",
-    channelName: "Linus Tech Tips",
-    videoUrl: "https://www.youtube.com/watch?v=demo-ltt-1",
-    label: "Promo code",
-    code: "LTT",
-    context: "Head to the link below and use code LTT to get 10% off your first order of our new screwdriver and other merch.",
-    timestampSeconds: 45,
-    timestampLabel: "0:45",
-  },
-  {
-    videoId: "demo-ltt-2",
-    videoTitle: "This Mini PC Changes EVERYTHING",
-    channelName: "Linus Tech Tips",
-    videoUrl: "https://www.youtube.com/watch?v=demo-ltt-2",
-    label: "Discount code",
-    code: "WANSHOW",
-    context: "Thanks to our sponsor — sign up today and use code WANSHOW to save $25 on your annual plan.",
-    timestampSeconds: 372,
-    timestampLabel: "6:12",
-  },
-  {
-    videoId: "demo-mkbhd-1",
-    videoTitle: "The Best Phones of 2026!",
-    channelName: "MKBHD",
-    videoUrl: "https://www.youtube.com/watch?v=demo-mkbhd-1",
-    label: "Free trial",
-    code: null,
-    context: "This video is sponsored — the first 100 people to use the link in the description get a free 30-day trial.",
-    timestampSeconds: 88,
-    timestampLabel: "1:28",
-  },
-  {
-    videoId: "demo-mkbhd-2",
-    videoTitle: "Why I Switched My Whole Setup",
-    channelName: "MKBHD",
-    videoUrl: "https://www.youtube.com/watch?v=demo-mkbhd-2",
-    label: "Discount code",
-    code: "MKBHD20",
-    context: "Use code MKBHD20 at checkout for 20% off — link is in the description below.",
-    timestampSeconds: 510,
-    timestampLabel: "8:30",
-  },
-];
-
-app.post("/api/demo/load", async (c) => {
-  for (const ch of DEMO_CHANNELS) db.addChannel(ch);
-
-  // Seed realistic sample deals (hosted env can't fetch transcripts — YouTube IP-blocks datacenters)
-  const seeded = [];
-  for (const d of DEMO_DEALS) {
-    if (db.isVideoScanned(d.videoId)) continue;
-    const entry = db.addDeal(d);
-    db.markVideoScanned(d.videoId);
-    seeded.push(entry);
-  }
-
-  // Text the subscriber the deals they'd have missed
-  if (seeded.length > 0) {
-    await notifyMissedDeals(seeded, "Demo (LTT + MKBHD)");
-  }
-
-  return c.json({
-    ok: true,
-    channels: DEMO_CHANNELS.map((c) => c.name),
-    dealsSeeded: seeded.length,
-    texted: db.getSubscriber()?.enabled ?? false,
-  });
 });
 
 // ── Boot ─────────────────────────────────────────────────────────────────────

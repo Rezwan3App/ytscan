@@ -1,764 +1,794 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>YTScan — Find Promo Codes in YouTube Videos</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>YTScan — Never miss a creator deal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    :root {
-      --bg:        #060607;
-      --bg-soft:   #0c0c0e;
-      --layer1:    #111114;
-      --layer2:    #17171b;
-      --layer3:    #1f1f25;
-      --border:    rgba(255,255,255,0.08);
-      --border-hi: rgba(255,255,255,0.14);
-      --red:       #ff453a;
-      --red-2:     #ff6a2b;
-      --red-dim:   rgba(255,69,58,0.14);
-      --red-glow:  rgba(255,69,58,0.40);
-      --text:      #f5f5f7;
-      --text-2:    #c7c7cc;
-      --muted:     #8e8e93;
-      --muted-2:   #5a5a60;
-      --green:     #30d158;
-      --amber:     #ffd60a;
-      --mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-      --ease:  cubic-bezier(.4,0,.2,1);
-      --bounce: cubic-bezier(.34,1.56,.64,1);
-    }
+  :root{
+    --bg:#ffffff;
+    --bg2:#f5f8ff;
+    --panel:#ffffff;
+    --ink:#0a1628;
+    --ink2:#3d4f66;
+    --muted:#6b7c93;
+    --muted2:#9aa8bd;
+    --line:#e3ebf6;
+    --line2:#d0dcec;
+    --blue:#0a66ff;
+    --blue-dark:#0047cc;
+    --blue-soft:#e8f0ff;
+    --blue-softer:#f3f7ff;
+    --green:#0a9e5c;
+    --green-soft:#e6f7ef;
+    --amber:#b06f00;
+    --amber-soft:#fff4e0;
+    --shadow:0 1px 3px rgba(10,40,90,.06),0 8px 24px rgba(10,40,90,.06);
+    --shadow-lg:0 4px 12px rgba(10,40,90,.08),0 24px 48px rgba(10,40,90,.10);
+    --r:16px;
+  }
 
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-      min-height: 100vh; overflow-x: hidden; line-height: 1.5;
-    }
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
 
-    /* ── AMBIENT ── */
-    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    .ambient::before {
-      content: ""; position: absolute; top: -340px; left: 50%; transform: translateX(-50%);
-      width: 1100px; height: 760px;
-      background: radial-gradient(ellipse 50% 50% at 50% 40%, rgba(255,69,58,0.13), transparent 70%);
-    }
-    .ambient::after {
-      content: ""; position: absolute; top: 8%; right: -200px; width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(255,106,43,0.06), transparent 70%);
-    }
-    .grid-lines {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-      background-size: 64px 64px;
-      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 30%, transparent 75%);
-      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 30%, transparent 75%);
-    }
+  /* NAV */
+  nav{
+    position:sticky;top:0;z-index:100;
+    display:flex;align-items:center;gap:14px;
+    padding:0 28px;height:60px;
+    background:rgba(255,255,255,.85);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+  .brand-mark{
+    width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,var(--blue),#3b82ff);
+    display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;
+    box-shadow:0 4px 14px rgba(10,102,255,.35);
+  }
+  .brand-name{font-size:17px;font-weight:800;letter-spacing:-.4px}
+  .brand-name b{color:var(--blue)}
+  .nav-spacer{flex:1}
+  .nav-link{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:9px;transition:.15s}
+  .nav-link:hover{color:var(--blue);background:var(--blue-softer)}
 
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 56px;
-      display: flex; align-items: center; padding: 0 24px;
-      background: rgba(6,6,7,0.7);
-      backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; user-select: none; }
-    .nav-icon {
-      width: 28px; height: 28px; border-radius: 7px;
-      background: linear-gradient(135deg, var(--red), var(--red-2));
-      display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #fff; letter-spacing: -0.5px;
-      box-shadow: 0 2px 12px var(--red-glow);
-    }
-    .nav-word { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
-    .nav-word b { color: var(--red); }
-    .nav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  /* HERO */
+  .hero{
+    text-align:center;
+    padding:72px 24px 40px;
+    max-width:760px;margin:0 auto;
+    position:relative;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--blue-soft);color:var(--blue-dark);
+    border-radius:999px;padding:6px 14px;
+    font-size:13px;font-weight:600;margin-bottom:24px;
+  }
+  .pill-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-    /* ── BUTTONS ── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-      border: none; border-radius: 11px; padding: 11px 18px;
-      font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
-      transition: transform .12s var(--ease), filter .15s, box-shadow .2s, background .15s, border-color .15s, color .15s;
-    }
-    .btn:active:not(:disabled) { transform: scale(0.96); }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-red {
-      background: linear-gradient(135deg, var(--red), var(--red-2)); color: #fff;
-      box-shadow: 0 4px 16px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.18);
-    }
-    .btn-red:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 6px 24px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
-    .btn-soft { background: var(--layer2); color: var(--text-2); border: 1px solid var(--border-hi); }
-    .btn-soft:hover:not(:disabled) { background: var(--layer3); color: var(--text); border-color: rgba(255,255,255,0.22); }
-    .btn-nav { padding: 8px 14px; font-size: 12.5px; border-radius: 10px; }
-    .btn-danger { color: var(--red) !important; }
-    .btn-full { width: 100%; }
+  h1.hero-title{
+    font-size:clamp(38px,6.5vw,64px);
+    font-weight:900;letter-spacing:-2.5px;line-height:1.04;
+    margin-bottom:18px;
+  }
+  h1.hero-title em{font-style:normal;color:var(--blue)}
+  .hero-sub{
+    font-size:clamp(16px,2.2vw,20px);color:var(--ink2);
+    max-width:540px;margin:0 auto 36px;line-height:1.55;
+  }
 
-    /* ── HERO ── */
-    .hero {
-      position: relative; z-index: 2; padding: 116px 24px 60px;
-      text-align: center; max-width: 720px; margin: 0 auto;
-    }
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(255,69,58,0.10); border: 1px solid rgba(255,69,58,0.22); border-radius: 999px;
-      padding: 6px 14px 6px 11px; font-size: 12px; font-weight: 600; color: var(--red);
-      margin-bottom: 26px; backdrop-filter: blur(8px);
-    }
-    .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: blink 2.2s var(--ease) infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .hero h1 { font-size: clamp(40px, 7.5vw, 76px); font-weight: 800; letter-spacing: -2.6px; line-height: 1.05; margin-bottom: 20px; }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(120deg, var(--red) 10%, var(--red-2) 90%);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .hero p.lead { font-size: clamp(16px, 2.3vw, 19px); color: var(--muted); line-height: 1.6; max-width: 500px; margin: 0 auto 36px; }
+  /* SEARCH BAR */
+  .search-wrap{max-width:560px;margin:0 auto;position:relative}
+  .search-box{
+    display:flex;align-items:center;gap:10px;
+    background:#fff;border:2px solid var(--line2);
+    border-radius:16px;padding:6px 6px 6px 18px;
+    box-shadow:var(--shadow);transition:.18s;
+  }
+  .search-box:focus-within{border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-soft),var(--shadow-lg)}
+  .search-icon{color:var(--muted2);flex-shrink:0;font-size:18px}
+  .search-input{
+    flex:1;border:none;outline:none;background:none;
+    font-family:inherit;font-size:16px;font-weight:500;color:var(--ink);padding:12px 0;
+  }
+  .search-input::placeholder{color:var(--muted2)}
+  .search-btn{
+    background:var(--blue);color:#fff;border:none;
+    border-radius:11px;padding:12px 22px;
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+    transition:.15s;white-space:nowrap;
+  }
+  .search-btn:hover{background:var(--blue-dark)}
+  .search-btn:disabled{opacity:.5;cursor:not-allowed}
+  .search-hint{font-size:13px;color:var(--muted);margin-top:14px}
+  .search-hint b{color:var(--ink2);font-weight:600}
+  .chip-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .ex-chip{
+    background:var(--blue-softer);border:1px solid var(--line);
+    color:var(--ink2);border-radius:999px;padding:6px 14px;
+    font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+  }
+  .ex-chip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
 
-    /* ── SEARCHBAR ── */
-    .searchbar {
-      max-width: 560px; margin: 0 auto 14px; position: relative; padding: 6px;
-      background: var(--layer2); border: 1px solid var(--border-hi); border-radius: 18px;
-      display: flex; gap: 6px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
-      transition: border-color .2s, box-shadow .2s;
-    }
-    .searchbar:focus-within { border-color: rgba(255,69,58,0.5); box-shadow: 0 12px 48px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.04); }
-    .searchbar input {
-      flex: 1; min-width: 0; background: transparent; border: none; outline: none;
-      padding: 12px 8px 12px 16px; font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
-    }
-    .searchbar input::placeholder { color: var(--muted); }
-    .searchbar .btn-red { border-radius: 13px; padding: 12px 26px; font-size: 14px; }
-    .hero-status { min-height: 22px; font-size: 13px; color: var(--muted); transition: color .2s; }
-    .hero-status.ok { color: var(--green); }
-    .hero-status.err { color: var(--red); }
-    .hero-status.busy { color: var(--amber); }
+  /* SEARCH RESULTS (channel suggestions) */
+  .results-pop{
+    max-width:560px;margin:14px auto 0;
+    background:#fff;border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow-lg);overflow:hidden;
+    display:none;
+  }
+  .results-pop.show{display:block;animation:pop .2s ease}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .res-head{padding:12px 18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .res-item{
+    display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;
+    border-bottom:1px solid var(--line);transition:.12s;text-align:left;
+  }
+  .res-item:last-child{border-bottom:none}
+  .res-item:hover{background:var(--blue-softer)}
+  .res-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--line)}
+  .res-info{flex:1;min-width:0}
+  .res-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .res-sub{font-size:13px;color:var(--muted);margin-top:1px}
+  .res-go{color:var(--blue);font-size:13px;font-weight:700;flex-shrink:0}
 
-    .hero-demo-btn {
-      margin-top: 18px;
-      background: transparent;
-      border: 1px solid var(--border2);
-      color: var(--text2);
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-family: inherit; font-size: 13px; font-weight: 600;
-      cursor: pointer;
-      transition: border-color .15s, color .15s, background .15s;
-    }
-    .hero-demo-btn:hover { border-color: var(--red); color: var(--red); background: rgba(255,59,48,.05); }
+  /* MAIN container */
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px}
 
-    /* ── HOW IT WORKS ── */
-    .how {
-      position: relative; z-index: 2; max-width: 880px; margin: 56px auto 0; padding: 0 24px;
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-    }
-    @media(max-width:680px){ .how { grid-template-columns: 1fr; } }
-    .how-card {
-      background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
-      border: 1px solid var(--border); border-radius: 18px; padding: 22px;
-      transition: transform .25s var(--ease), border-color .2s;
-    }
-    .how-card:hover { transform: translateY(-3px); border-color: var(--border-hi); }
-    .how-num { width: 30px; height: 30px; border-radius: 9px; background: var(--red-dim); color: var(--red); display: grid; place-items: center; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
-    .how-card h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 6px; }
-    .how-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+  /* SECTION TITLES */
+  .sec-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 4px}
+  .sec-lead{font-size:15px;color:var(--ink2);margin-bottom:18px}
 
-    /* ── SECTION ── */
-    .section { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 0 24px; }
-    .section-title { text-align: center; margin: 84px 0 8px; font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -1px; }
-    .section-sub { text-align: center; color: var(--muted); font-size: 15px; max-width: 440px; margin: 0 auto 36px; }
+  /* PREVIEW PANEL */
+  .preview{margin:8px 0 48px;display:none}
+  .preview.show{display:block;animation:pop .25s ease}
+  .preview-card{
+    background:#fff;border:1px solid var(--line);border-radius:20px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .preview-top{
+    display:flex;align-items:center;gap:16px;padding:22px 24px;
+    background:linear-gradient(135deg,var(--blue-softer),#fff);
+    border-bottom:1px solid var(--line);
+  }
+  .preview-avatar{width:60px;height:60px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fff;box-shadow:var(--shadow)}
+  .preview-meta{flex:1;min-width:0}
+  .preview-name{font-size:20px;font-weight:800;letter-spacing:-.4px}
+  .preview-stat{font-size:14px;color:var(--muted);margin-top:2px}
+  .preview-count{
+    background:var(--blue);color:#fff;border-radius:999px;
+    padding:5px 13px;font-size:13px;font-weight:700;flex-shrink:0;
+  }
 
-    /* ── TOOLS ── */
-    .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    @media(max-width:640px){ .tools { grid-template-columns: 1fr; } }
-    .tool {
-      background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
-      border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
-      transition: border-color .2s, box-shadow .25s;
-    }
-    .tool:hover { border-color: var(--border-hi); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
-    .tool-head { padding: 22px 22px 0; display: flex; align-items: center; gap: 12px; }
-    .tool-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--red-dim); display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
-    .tool-head h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-    .tool-head p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-    .tool-body { padding: 18px 22px 22px; }
+  .vids{padding:8px 0}
+  .vid{
+    display:flex;gap:14px;padding:16px 24px;border-bottom:1px solid var(--line);
+  }
+  .vid:last-child{border-bottom:none}
+  .vid-idx{
+    width:26px;height:26px;border-radius:8px;background:var(--blue-softer);
+    color:var(--blue);font-size:13px;font-weight:800;
+    display:grid;place-items:center;flex-shrink:0;margin-top:2px;
+  }
+  .vid-body{flex:1;min-width:0}
+  .vid-title{font-size:15px;font-weight:700;line-height:1.35;margin-bottom:6px}
+  .vid-title a{color:var(--ink);text-decoration:none}
+  .vid-title a:hover{color:var(--blue)}
+  .vid-date{font-size:12px;color:var(--muted2);font-weight:600}
+  .vid-deals{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .deal-line{
+    display:flex;align-items:flex-start;gap:10px;
+    background:var(--green-soft);border:1px solid #c5ebd7;
+    border-radius:11px;padding:10px 13px;
+  }
+  .deal-line.nocode{background:var(--amber-soft);border-color:#f0dcb0}
+  .deal-badge{
+    font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--green);background:#fff;border:1px solid #c5ebd7;
+    border-radius:6px;padding:2px 7px;flex-shrink:0;white-space:nowrap;
+  }
+  .deal-line.nocode .deal-badge{color:var(--amber);border-color:#f0dcb0}
+  .deal-text{flex:1;font-size:13px;color:var(--ink2);line-height:1.45;min-width:0}
+  .deal-code{font-weight:800;color:var(--ink);font-family:ui-monospace,monospace;letter-spacing:.5px}
+  .deal-link{color:var(--blue);font-weight:700;text-decoration:none;word-break:break-all}
+  .deal-link:hover{text-decoration:underline}
+  .vid-nodeal{font-size:13px;color:var(--muted2);margin-top:8px;font-style:italic}
 
-    .inp {
-      width: 100%; background: var(--bg-soft); border: 1px solid var(--border-hi); border-radius: 12px;
-      padding: 12px 14px; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--text); outline: none;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .inp::placeholder { color: var(--muted); }
-    .inp:focus { border-color: rgba(255,69,58,0.5); box-shadow: 0 0 0 3px rgba(255,69,58,0.10); }
-    .tool .btn-red { margin-top: 12px; }
+  /* copyable code chip */
+  .code-chip{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    background:#fff;border:1px solid #c5ebd7;border-radius:7px;
+    padding:2px 8px;font-family:ui-monospace,monospace;font-weight:800;
+    color:var(--ink);letter-spacing:.5px;font-size:12.5px;transition:all .12s;
+    vertical-align:middle;
+  }
+  .code-chip:hover{border-color:var(--green);background:var(--green-soft)}
+  .code-chip .ico{font-size:11px;opacity:.55}
+  .code-chip.copied{background:var(--green);color:#fff;border-color:var(--green)}
+  .code-chip.copied .ico{opacity:1}
 
-    /* ── CHIP ── */
-    .chip { display: flex; align-items: center; gap: 8px; border-radius: 10px; padding: 10px 13px; font-size: 12px; font-weight: 500; min-height: 38px; line-height: 1.45; margin-top: 12px; }
-    .chip.idle { background: var(--layer2); color: var(--muted); border: 1px solid var(--border); }
-    .chip.busy { background: var(--amber-dim, rgba(255,214,10,.08)); color: var(--amber); border: 1px solid rgba(255,214,10,.2); }
-    .chip.ok   { background: rgba(48,209,88,.08); color: var(--green); border: 1px solid rgba(48,209,88,.2); }
-    .chip.err  { background: rgba(255,69,58,.08); color: var(--red); border: 1px solid rgba(255,69,58,.2); }
+  /* expiry pills */
+  .expiry{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    border-radius:6px;padding:2px 7px;margin-top:6px;white-space:nowrap;
+  }
+  .expiry.ok{background:#eef6ff;color:#1d6fd6;border:1px solid #cfe2fb}
+  .expiry.soon{background:var(--amber-soft);color:#a9710a;border:1px solid #f0dcb0}
+  .expiry.expired{background:#fbeceb;color:#c5302a;border:1px solid #f3cdcb}
 
-    /* ── CHANNEL LIST ── */
-    .ch-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-    .ch-row { display: flex; align-items: center; gap: 11px; padding: 9px 11px; background: var(--layer2); border: 1px solid var(--border); border-radius: 12px; transition: border-color .15s; }
-    .ch-row:hover { border-color: var(--border-hi); }
-    .ch-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--red), var(--red-2)); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; }
-    .ch-name { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ch-btns { display: flex; gap: 6px; flex-shrink: 0; }
-    .ch-btns .btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; }
+  /* CTA inside preview */
+  .preview-cta{
+    padding:22px 24px;background:var(--blue-softer);border-top:1px solid var(--line);
+  }
+  .cta-title{font-size:16px;font-weight:800;margin-bottom:4px}
+  .cta-sub{font-size:14px;color:var(--ink2);margin-bottom:16px}
+  .cta-form{display:flex;gap:10px;flex-wrap:wrap}
+  .cta-input{
+    flex:1;min-width:200px;border:1.5px solid var(--line2);border-radius:12px;
+    padding:13px 15px;font-family:inherit;font-size:15px;font-weight:500;outline:none;background:#fff;transition:.15s;
+  }
+  .cta-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+  .btn{
+    border:none;border-radius:12px;padding:13px 22px;
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  }
+  .btn-blue{background:var(--blue);color:#fff}
+  .btn-blue:hover{background:var(--blue-dark)}
+  .btn-blue:disabled{opacity:.5;cursor:not-allowed}
+  .btn-ghost{background:#fff;color:var(--ink2);border:1.5px solid var(--line2)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .cta-note{font-size:12px;color:var(--muted);margin-top:12px;display:flex;align-items:center;gap:6px}
 
-    /* ── DEALS ── */
-    .deals-wrap { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 0 24px 120px; }
-    .deals-top { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 32px; }
-    .deals-top h2 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -1px; }
-    .deals-badge { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,69,58,.25); border-radius: 999px; padding: 4px 13px; font-size: 13px; font-weight: 800; }
-    .deals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+  .status{
+    margin-top:12px;border-radius:11px;padding:11px 14px;
+    font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;
+  }
+  .status.show{display:flex}
+  .status.ok{background:var(--green-soft);color:var(--green);border:1px solid #c5ebd7}
+  .status.err{background:#fdeaea;color:#c5302a;border:1px solid #f5cccc}
+  .status.busy{background:var(--amber-soft);color:var(--amber);border:1px solid #f0dcb0}
 
-    .deal {
-      position: relative; background: linear-gradient(180deg, var(--layer1), var(--bg-soft));
-      border: 1px solid var(--border); border-radius: 20px; padding: 20px;
-      display: flex; flex-direction: column; gap: 13px; overflow: hidden;
-      transition: transform .25s var(--ease), border-color .2s, box-shadow .25s;
-    }
-    .deal::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--red), var(--red-2)); opacity: 0; transition: opacity .2s; }
-    .deal:hover { transform: translateY(-4px); border-color: var(--border-hi); box-shadow: 0 24px 60px rgba(0,0,0,0.55); }
-    .deal:hover::before { opacity: 1; }
-    .deal-top { display: flex; align-items: center; justify-content: space-between; }
-    .deal-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,69,58,.22); border-radius: 6px; padding: 4px 9px; }
-    .deal-del { background: none; border: none; cursor: pointer; color: var(--muted-2); font-size: 14px; padding: 4px 7px; border-radius: 7px; line-height: 1; transition: color .15s, background .15s; }
-    .deal-del:hover { color: var(--red); background: rgba(255,69,58,.10); }
+  /* HOW IT WORKS */
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:8px 0 56px}
+  @media(max-width:680px){.how{grid-template-columns:1fr}}
+  .how-card{
+    background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 22px;
+    box-shadow:var(--shadow);
+  }
+  .how-num{
+    width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);
+    font-weight:800;font-size:16px;display:grid;place-items:center;margin-bottom:14px;
+  }
+  .how-card h3{font-size:16px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px}
+  .how-card p{font-size:14px;color:var(--ink2);line-height:1.5}
 
-    .code-box { display: flex; align-items: center; justify-content: space-between; background: var(--bg-soft); border: 1px dashed var(--border-hi); border-radius: 12px; padding: 13px 16px; cursor: pointer; gap: 10px; transition: border-color .15s, background .15s; }
-    .code-box:hover { border-color: var(--red); border-style: solid; background: var(--red-dim); }
-    .code-text { font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: 1.5px; color: var(--text); }
-    .code-copy { font-size: 14px; color: var(--muted); flex-shrink: 0; transition: color .15s; }
-    .code-box:hover .code-copy { color: var(--red); }
+  /* WATCHED + SUBSCRIBER STATUS */
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow);padding:24px;margin-bottom:24px;
+  }
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .panel-head h3{font-size:17px;font-weight:800;letter-spacing:-.3px}
+  .watched-list{display:flex;flex-direction:column;gap:10px}
+  .watched-item{
+    display:flex;align-items:center;gap:13px;padding:12px 14px;
+    background:var(--blue-softer);border:1px solid var(--line);border-radius:13px;
+  }
+  .watched-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--line)}
+  .watched-name{flex:1;font-size:15px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .watched-actions{display:flex;gap:8px;flex-shrink:0}
+  .icon-btn{
+    width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line2);background:#fff;
+    cursor:pointer;font-size:15px;color:var(--muted);transition:.15s;display:grid;place-items:center;
+  }
+  .icon-btn:hover{border-color:var(--blue);color:var(--blue)}
+  .icon-btn.danger:hover{border-color:#e05a52;color:#e05a52}
+  .empty-mini{font-size:14px;color:var(--muted);padding:8px 2px}
 
-    .deal-ctx { font-size: 12.5px; color: var(--muted); line-height: 1.55; font-style: italic; }
-    .deal-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border); }
-    .deal-ch { font-size: 12px; font-weight: 600; color: var(--muted); }
-    .deal-link { font-size: 12px; font-weight: 600; color: var(--red); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
-    .deal-link:hover { text-decoration: underline; }
-    .deal-ts { margin-left: auto; flex-shrink: 0; background: var(--layer2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--text-2); cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
-    .deal-ts:hover { color: #fff; border-color: var(--border-hi); background: var(--layer3); }
+  .sub-status{
+    display:flex;align-items:center;gap:10px;
+    background:var(--green-soft);border:1px solid #c5ebd7;border-radius:13px;padding:14px 16px;
+  }
+  .sub-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(10,158,92,.18)}
+  .sub-info{flex:1;font-size:14px}
+  .sub-info b{color:var(--green-dark,#087a47)}
+  .demo-badge{
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+    background:var(--amber-soft);color:var(--amber);border:1px solid #f0dcb0;border-radius:6px;padding:3px 8px;
+  }
 
-    /* ── EMPTY ── */
-    .empty { grid-column: 1/-1; padding: 64px 24px; text-align: center; background: linear-gradient(180deg, var(--layer1), var(--bg-soft)); border: 1px dashed var(--border-hi); border-radius: 22px; }
-    .empty-ico { font-size: 50px; margin-bottom: 18px; filter: grayscale(.2); }
-    .empty h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 10px; }
-    .empty p { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 360px; margin: 0 auto; }
+  /* deal history feed */
+  .hist-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .hist-filter{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:2px}
+  .hist-tab{
+    border:none;background:none;cursor:pointer;font-size:13px;font-weight:700;
+    color:var(--muted);padding:5px 12px;border-radius:7px;transition:all .12s;font-family:inherit;
+  }
+  .hist-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .hist-list{display:flex;flex-direction:column;gap:10px}
+  .hist-item{
+    display:flex;align-items:flex-start;gap:12px;
+    background:var(--soft);border:1px solid var(--line);
+    border-radius:12px;padding:13px 15px;transition:border-color .12s;
+  }
+  .hist-item:hover{border-color:#d4d4d8}
+  .hist-item.is-expired{opacity:.62}
+  .hist-main{flex:1;min-width:0}
+  .hist-row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+  .hist-ch{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .hist-ctx{font-size:13px;color:var(--ink2);line-height:1.45}
+  .hist-vid{font-size:12px;color:var(--blue);font-weight:700;text-decoration:none;display:inline-block;margin-top:5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hist-vid:hover{text-decoration:underline}
+  .hist-del{flex-shrink:0}
 
-    /* ── FOOTER ── */
-    footer { position: relative; z-index: 2; border-top: 1px solid var(--border); padding: 32px 24px 48px; text-align: center; }
-    footer p { font-size: 12.5px; color: var(--muted-2); }
-    footer a { color: var(--muted); text-decoration: none; }
-    footer a:hover { color: var(--text-2); }
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:32px 24px;text-align:center;color:var(--muted);font-size:13px;margin-top:40px}
+  footer a{color:var(--blue);text-decoration:none;font-weight:600}
 
-    /* ── TOAST ── */
-    .toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: rgba(22,22,24,0.94); backdrop-filter: blur(20px);
-      border: 1px solid var(--border-hi); border-radius: 14px; padding: 13px 24px;
-      font-size: 13px; font-weight: 600; box-shadow: 0 12px 48px rgba(0,0,0,0.7);
-      z-index: 9999; pointer-events: none; opacity: 0;
-      transition: transform .32s var(--bounce), opacity .24s;
-    }
-    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  /* TOAST */
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--ink);color:#fff;border-radius:13px;padding:13px 22px;
+    font-size:14px;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;pointer-events:none;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
-    /* ── SPINNER ── */
-    .sp { display: inline-block; width: 11px; height: 11px; border: 2px solid rgba(255,255,255,0.18); border-top-color: currentColor; border-radius: 50%; animation: spin .55s linear infinite; vertical-align: middle; flex-shrink: 0; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── REVEAL ── */
-    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
-    .reveal.in { opacity: 1; transform: none; }
-
-    /* ── SMS ALERTS ── */
-    .sms-wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
-    .sms-card {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 28px;
-      flex-wrap: wrap;
-      background: linear-gradient(135deg, rgba(255,59,48,.08) 0%, var(--layer1) 55%);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 32px;
-      overflow: hidden;
-    }
-    .sms-card::before {
-      content: "";
-      position: absolute; top: -40%; right: -10%;
-      width: 320px; height: 320px;
-      background: radial-gradient(circle, rgba(255,59,48,.16) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .sms-left { display: flex; align-items: flex-start; gap: 14px; position: relative; flex: 1; min-width: 240px; }
-    .sms-left h3 { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
-    .sms-left p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; max-width: 360px; }
-    .sms-right { position: relative; width: 300px; flex-shrink: 0; }
-    @media(max-width:680px){
-      .sms-right { width: 100%; }
-    }
-    .sms-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
-      box-shadow: 0 0 10px var(--green); flex-shrink: 0;
-      animation: blink 2.2s ease-in-out infinite;
-    }
-    .sms-btn-row { display: flex; gap: 8px; margin-top: 10px; }
-    .sms-btn-row .btn { flex: 1; }
-    .sms-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; position: relative; }
-    .sms-ico {
-      width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
-      background: var(--red); display: grid; place-items: center; font-size: 22px;
-      box-shadow: 0 8px 24px rgba(255,59,48,.35);
-    }
-    .sms-head h3 { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
-    .sms-head p { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .sms-body { position: relative; margin-top: 18px; }
-    .sms-row { display: flex; gap: 10px; }
-    @media(max-width:520px){ .sms-row { flex-direction: column; } }
-    .sms-row .inp { flex: 1; }
-    .sms-note {
-      display: inline-flex; align-items: center; gap: 6px;
-      margin-top: 14px; font-size: 12px; color: var(--muted2);
-    }
-    .sms-badge {
-      display: inline-block; font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .6px;
-      background: var(--amber-dim, rgba(255,214,10,.12)); color: var(--amber);
-      border: 1px solid rgba(255,214,10,.25);
-      border-radius: 6px; padding: 2px 7px; margin-left: 8px;
-    }
-    .sms-active {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      background: rgba(48,209,88,.07); border: 1px solid rgba(48,209,88,.22);
-      border-radius: 13px; padding: 14px 16px; position: relative;
-    }
-    .sms-active-info { font-size: 13px; }
-    .sms-active-info b { color: var(--green); }
-    .sms-active-phone { color: var(--muted); font-size: 12px; margin-top: 2px; }
-    .sms-preview {
-      margin-top: 14px;
-      background: var(--layer2); border: 1px solid var(--border);
-      border-radius: 13px; padding: 14px 16px;
-      font-size: 12.5px; line-height: 1.5; color: var(--text2);
-      white-space: pre-wrap; font-family: var(--mono, monospace);
-      max-height: 0; overflow: hidden; opacity: 0;
-      transition: max-height .3s, opacity .3s, padding .3s, margin .3s;
-    }
-    .sms-preview.show { max-height: 420px; opacity: 1; }
-  </style>
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+  .btn-ghost .spin,.status .spin{border-color:rgba(10,102,255,.3);border-top-color:var(--blue)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
 
-<div class="ambient"></div>
-<div class="grid-lines"></div>
-
-<!-- NAV -->
 <nav>
-  <a class="nav-brand" href="/">
-    <div class="nav-icon">YT</div>
-    <span class="nav-word">YT<b>Scan</b></span>
+  <a class="brand" href="/">
+    <div class="brand-mark">Y</div>
+    <span class="brand-name">YT<b>Scan</b></span>
   </a>
-  <div class="nav-right">
-    <button class="btn btn-soft btn-nav" id="scanAllBtn">↻ Scan all</button>
-    <button class="btn btn-soft btn-nav btn-danger" id="clearAllBtn">Clear</button>
-  </div>
+  <div class="nav-spacer"></div>
+  <a class="nav-link" href="#how">How it works</a>
+  <a class="nav-link" href="#watched">My alerts</a>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="eyebrow"><span class="eyebrow-dot"></span> No account needed · Works on any YouTube video</div>
-  <h1>Stop watching.<br/>Just get the <em>deal.</em></h1>
-  <p class="lead">Paste a YouTube link. YTScan reads the full transcript and pulls every promo code, discount, and sponsored offer — with a timestamp to jump straight to it.</p>
+  <div class="pill"><span class="pill-dot"></span>No more sitting through sponsor reads</div>
+  <h1 class="hero-title">Find the creator deal.<br/><em>Skip the video.</em></h1>
+  <p class="hero-sub">Search any YouTuber you love. YTScan checks their latest videos for promo codes and discounts — and texts you the moment a new one drops.</p>
 
-  <div class="searchbar">
-    <input id="heroUrl" type="url" placeholder="Paste a YouTube URL…" autocomplete="off" spellcheck="false"/>
-    <button class="btn btn-red" id="heroScanBtn">Scan</button>
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search a YouTuber — e.g. MKBHD, Linus Tech Tips…" autocomplete="off"/>
+      <button class="search-btn" id="searchBtn">Search</button>
+    </div>
+    <div class="chip-row">
+      <button class="ex-chip" data-q="MKBHD">MKBHD</button>
+      <button class="ex-chip" data-q="Linus Tech Tips">Linus Tech Tips</button>
+      <button class="ex-chip" data-q="Marvel">Marvel</button>
+      <button class="ex-chip" data-q="Mr Beast">MrBeast</button>
+    </div>
   </div>
-  <p class="hero-status" id="heroStatus">Try it — paste any YouTube video above.</p>
-  <button class="hero-demo-btn" id="demoBtn">▶ Try the demo · Linus Tech Tips + MKBHD</button>
+
+  <div class="results-pop" id="resultsPop"></div>
 </section>
 
-<!-- HOW IT WORKS -->
-<div class="how">
-  <div class="how-card reveal">
-    <div class="how-num">1</div>
-    <h3>Paste a link</h3>
-    <p>Drop in any YouTube video or add a channel to watch automatically.</p>
-  </div>
-  <div class="how-card reveal">
-    <div class="how-num">2</div>
-    <h3>We read the transcript</h3>
-    <p>YTScan scans the entire spoken transcript for codes, discounts, and offers.</p>
-  </div>
-  <div class="how-card reveal">
-    <div class="how-num">3</div>
-    <h3>Get the deal</h3>
-    <p>Copy the code in one click and jump to the exact timestamp it was mentioned.</p>
-  </div>
-</div>
+<div class="wrap">
+  <!-- PREVIEW PANEL -->
+  <div class="preview" id="preview"></div>
 
-<!-- TOOLS -->
-<h2 class="section-title">Two ways to find deals</h2>
-<p class="section-sub">Scan a single video on demand, or watch your favorite channels and let codes roll in.</p>
-<div class="section">
-  <div class="tools">
-    <div class="tool reveal">
-      <div class="tool-head">
-        <div class="tool-ico">🎬</div>
-        <div><h3>Scan a video</h3><p>One link, instant results</p></div>
-      </div>
-      <div class="tool-body">
-        <input class="inp" id="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…"/>
-        <button class="btn btn-red btn-full" id="scanBtn">Scan for deals</button>
-        <div class="chip idle" id="scanStatus">Ready to scan.</div>
-      </div>
+  <!-- HOW IT WORKS -->
+  <h2 class="sec-title" id="how">How it works</h2>
+  <p class="sec-lead">Three steps. No account, no clutter.</p>
+  <div class="how">
+    <div class="how-card">
+      <div class="how-num">1</div>
+      <h3>Search a creator</h3>
+      <p>Type a YouTuber's name. We suggest matching channels with their subscriber counts.</p>
     </div>
-
-    <div class="tool reveal">
-      <div class="tool-head">
-        <div class="tool-ico">📡</div>
-        <div><h3>Watch a channel</h3><p>Auto-scan latest uploads</p></div>
-      </div>
-      <div class="tool-body">
-        <input class="inp" id="channelUrl" type="url" placeholder="https://youtube.com/@channel"/>
-        <button class="btn btn-red btn-full" id="addChannelBtn">Add channel</button>
-        <div class="chip idle" id="channelStatus">Add channels to monitor.</div>
-        <div class="ch-list" id="channelList"></div>
-      </div>
+    <div class="how-card">
+      <div class="how-num">2</div>
+      <h3>See their latest deals</h3>
+      <p>We scan their last 5 videos and surface every promo code, discount, and sponsor link.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-num">3</div>
+      <h3>Get them texted</h3>
+      <p>Add your number and we'll text you new deals automatically — the second a video goes live.</p>
     </div>
   </div>
-</div>
 
-<!-- SMS ALERTS -->
-<h2 class="section-title">Get deals texted to you</h2>
-<p class="section-sub">Don't even open the app. When a watched channel drops a new video, we text you the codes you'd have missed.</p>
-<div class="section">
-  <div class="sms-card reveal">
-    <div class="sms-left">
-      <div class="sms-ico">💬</div>
-      <div>
-        <h3 id="smsHeadline">Text me the deals</h3>
-        <p id="smsDesc">Enter your number. We'll send a quick confirmation, then alert you whenever a new video from your watched channels has a promo code.</p>
-        <div class="sms-badge" id="smsModeBadge" style="display:none"></div>
-      </div>
+  <!-- WATCHED CHANNELS -->
+  <div id="watched">
+    <div class="panel">
+      <div class="panel-head"><h3>📡 Channels you're watching</h3></div>
+      <div class="watched-list" id="watchedList"><div class="empty-mini">Search a creator above and tap "Watch & text me deals" to start.</div></div>
     </div>
-    <div class="sms-right">
-      <div id="smsForm">
-        <input class="inp" id="phoneInput" type="tel" placeholder="+1 415 555 2671" autocomplete="tel"/>
-        <button class="btn btn-red btn-full" id="subscribeBtn">Text me deals</button>
-        <div class="chip idle" id="smsStatus">No spam. Reply STOP anytime.</div>
+
+    <div class="panel" id="subPanel" style="display:none">
+      <div class="panel-head"><h3>💬 Text alerts</h3><span class="demo-badge" id="demoBadge" style="display:none">Demo mode</span></div>
+      <div class="sub-status">
+        <span class="sub-dot"></span>
+        <div class="sub-info">Alerts on for <b id="subPhone"></b></div>
+        <button class="btn btn-ghost" id="testBtn" style="padding:9px 16px;font-size:14px">Send test</button>
+        <button class="icon-btn danger" id="unsubBtn" title="Turn off">✕</button>
       </div>
-      <div id="smsManage" style="display:none">
-        <div class="sms-active">
-          <span class="sms-dot"></span>
-          <span>Alerts on for <b id="smsPhone"></b></span>
+      <div class="status" id="subStatus"></div>
+    </div>
+  </div>
+
+  <!-- DEAL HISTORY FEED -->
+  <div id="history">
+    <div class="panel">
+      <div class="panel-head">
+        <h3>🗂️ Deal history</h3>
+        <div class="hist-tools">
+          <div class="hist-filter" id="histFilter">
+            <button class="hist-tab active" data-f="all">All</button>
+            <button class="hist-tab" data-f="active">Active</button>
+            <button class="hist-tab" data-f="expiring">Expiring</button>
+          </div>
+          <button class="btn btn-ghost" id="clearHistBtn" style="padding:7px 12px;font-size:13px">Clear all</button>
         </div>
-        <div class="sms-btn-row">
-          <button class="btn btn-ghost" id="testTextBtn">Send test text</button>
-          <button class="btn btn-ghost btn-danger" id="unsubBtn">Turn off</button>
-        </div>
-        <div class="chip idle" id="smsStatus2">You're all set.</div>
       </div>
+      <div class="hist-list" id="histList"><div class="empty-mini">Deals you find and watch will be saved here.</div></div>
     </div>
   </div>
-</div>
-
-<!-- DEALS -->
-<h2 class="section-title">Your deals</h2>
-<p class="section-sub">Everything YTScan has found, ready to copy.</p>
-<div class="deals-wrap">
-  <div class="deals-top">
-    <h2 style="font-size:20px">Found</h2>
-    <span class="deals-badge" id="dealCount">0</span>
-  </div>
-  <div class="deals-grid" id="dealsList"></div>
 </div>
 
 <footer>
-  <p>YTScan · reads public YouTube transcripts · <a href="https://github.com/Rezwan3App/ytscan" target="_blank" rel="noreferrer">View source</a></p>
+  YTScan · reads public YouTube data · scans video descriptions for deals
 </footer>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const API = "";
+const API="";
+let currentChannel=null;
 
+// ── helpers ──
+function $(id){return document.getElementById(id)}
 let _tt;
-function toast(msg, ms = 3000) {
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.classList.add("show");
-  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove("show"), ms);
+function toast(msg,ms=2800){const e=$("toast");e.textContent=msg;e.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>e.classList.remove("show"),ms)}
+const sp=()=>`<span class="spin"></span>`;
+function setStatus(id,html,state){const e=$(id);e.className=`status show ${state}`;e.innerHTML=html}
+function clearStatus(id){$(id).className="status"}
+
+// ── search ──
+async function doSearch(q){
+  if(!q)return;
+  const btn=$("searchBtn");btn.disabled=true;btn.innerHTML=sp();
+  const pop=$("resultsPop");
+  pop.classList.add("show");
+  pop.innerHTML=`<div class="res-head">Searching…</div>`;
+  try{
+    const r=await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+    const results=r.results||[];
+    if(!results.length){pop.innerHTML=`<div class="res-head">No channels found for "${q}"</div>`;}
+    else{
+      pop.innerHTML=`<div class="res-head">${results.length} channel${results.length>1?"s":""} found — pick one</div>`+
+        results.map(c=>`
+          <button class="res-item" data-id="${c.id}" data-name="${c.name.replace(/"/g,'&quot;')}" data-avatar="${c.thumbnail}">
+            <img class="res-avatar" src="${c.thumbnail}" loading="lazy" onerror="this.style.visibility='hidden'"/>
+            <div class="res-info">
+              <div class="res-name">${c.name}</div>
+              <div class="res-sub">${c.subscribers||""}</div>
+            </div>
+            <span class="res-go">View deals →</span>
+          </button>`).join("");
+      pop.querySelectorAll(".res-item").forEach(item=>{
+        item.addEventListener("click",()=>{
+          selectChannel(item.dataset.id,item.dataset.name,item.dataset.avatar);
+        });
+      });
+    }
+  }catch(e){pop.innerHTML=`<div class="res-head">Search failed. Try again.</div>`;}
+  btn.disabled=false;btn.textContent="Search";
 }
 
-function setChip(id, html, state = "idle") {
-  const el = document.getElementById(id);
-  el.className = `chip ${state}`; el.innerHTML = html;
-}
-function setHero(msg, state = "") {
-  const el = document.getElementById("heroStatus");
-  el.className = `hero-status${state ? " " + state : ""}`; el.innerHTML = msg;
-}
-const sp = () => `<span class="sp"></span>`;
+$("searchBtn").addEventListener("click",()=>doSearch($("searchInput").value.trim()));
+$("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")doSearch($("searchInput").value.trim())});
+document.querySelectorAll(".ex-chip").forEach(c=>c.addEventListener("click",()=>{$("searchInput").value=c.dataset.q;doSearch(c.dataset.q)}));
 
-// ── Deals ──
-async function loadDeals() {
-  const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
-  renderDeals(deals);
-}
-function renderDeals(deals) {
-  document.getElementById("dealCount").textContent = deals.length;
-  const el = document.getElementById("dealsList");
-  if (!deals.length) {
-    el.innerHTML = `
-      <div class="empty">
-        <div class="empty-ico">🎯</div>
-        <h3>No deals yet</h3>
-        <p>Paste a YouTube link above. YTScan will read the transcript and pull out every promo code, discount, and sponsored offer automatically.</p>
-      </div>`;
-    return;
+// ── select channel → preview last 5 videos ──
+async function selectChannel(id,name,avatar){
+  currentChannel={id,name,avatar};
+  $("resultsPop").classList.remove("show");
+  const prev=$("preview");
+  prev.classList.add("show");
+  prev.innerHTML=`<div class="preview-card"><div class="preview-top"><div class="preview-meta"><div class="preview-name">${name}</div><div class="preview-stat">${sp()} Scanning last 5 videos for deals…</div></div></div></div>`;
+  prev.scrollIntoView({behavior:"smooth",block:"start"});
+
+  try{
+    const r=await fetch(`${API}/api/channel/${id}/preview?name=${encodeURIComponent(name)}`).then(r=>r.json());
+    renderPreview(r.videos||[]);
+  }catch(e){
+    prev.innerHTML=`<div class="preview-card"><div class="preview-top"><div class="preview-meta"><div class="preview-name">${name}</div><div class="preview-stat" style="color:#c5302a">Couldn't load videos. Try again.</div></div></div></div>`;
   }
-  el.innerHTML = deals.map(dealCard).join("");
-  el.querySelectorAll(".code-box").forEach(box => {
-    box.addEventListener("click", () => {
-      navigator.clipboard.writeText(box.dataset.code).catch(() => {});
-      toast(`✅  Copied "${box.dataset.code}"`);
-    });
-  });
-  el.querySelectorAll(".deal-ts").forEach(btn => {
-    btn.addEventListener("click", () => window.open(`${btn.dataset.url}&t=${btn.dataset.sec}s`, "_blank"));
-  });
-  el.querySelectorAll(".deal-del").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      await fetch(`${API}/api/deals/${btn.dataset.id}`, { method: "DELETE" });
-      loadDeals();
-    });
-  });
 }
-function dealCard(d) {
-  const code = d.code ? `
-    <div class="code-box" data-code="${d.code}" title="Click to copy">
-      <span class="code-text">${d.code}</span>
-      <span class="code-copy">⧉ copy</span>
-    </div>` : "";
-  const ctx = d.context ? `<p class="deal-ctx">"${d.context.slice(0,170)}${d.context.length > 170 ? "…" : ""}"</p>` : "";
-  const t = (d.videoTitle || "");
-  const title = t.slice(0, 42) + (t.length > 42 ? "…" : "");
-  return `
-    <div class="deal">
-      <div class="deal-top">
+
+function fmtDate(iso){
+  if(!iso)return"";
+  const d=new Date(iso);const now=new Date();
+  const days=Math.floor((now-d)/(1000*60*60*24));
+  if(days===0)return"Today";if(days===1)return"Yesterday";
+  if(days<7)return`${days} days ago`;
+  if(days<30)return`${Math.floor(days/7)}w ago`;
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+}
+
+function renderPreview(videos){
+  const totalDeals=videos.reduce((a,v)=>a+v.deals.length,0);
+  const c=currentChannel;
+  const avatar=c.avatar&&c.avatar!=="undefined"?`<img class="preview-avatar" src="${c.avatar}" onerror="this.style.visibility='hidden'"/>`:"";
+
+  const vidsHtml=videos.map((v,i)=>{
+    const deals=v.deals.map(d=>{
+      const codePart=d.code?`${codeChip(d.code)} `:"";
+      const linkPart=d.url?` <a class="deal-link" href="${d.url}" target="_blank" rel="noreferrer">${d.url.replace(/^https?:\/\//,"")}</a>`:"";
+      const exp=expiryPill(d.expiresAt,d.expiryText);
+      return `<div class="deal-line ${d.code?"":"nocode"}">
         <span class="deal-badge">${d.label}</span>
-        <button class="deal-del" data-id="${d.id}" title="Remove">✕</button>
-      </div>
-      ${code}
-      ${ctx}
-      <div class="deal-foot">
-        <span class="deal-ch">📺 ${d.channelName}</span>
-        <a class="deal-link" href="${d.videoUrl}" target="_blank" rel="noreferrer" title="${d.videoTitle}">${title}</a>
-        <span class="deal-ts" data-url="${d.videoUrl}" data-sec="${d.timestampSeconds}">⏱ ${d.timestampLabel}</span>
+        <span class="deal-text">${codePart}${escapeHtml(d.context)}${linkPart}${exp}</span>
+      </div>`;
+    }).join("");
+    return `<div class="vid">
+      <div class="vid-idx">${i+1}</div>
+      <div class="vid-body">
+        <div class="vid-title"><a href="${v.url}" target="_blank" rel="noreferrer">${escapeHtml(v.title)}</a></div>
+        <div class="vid-date">${fmtDate(v.publishedAt)}</div>
+        ${deals?`<div class="vid-deals">${deals}</div>`:`<div class="vid-nodeal">No deal detected in this video's description</div>`}
       </div>
     </div>`;
+  }).join("");
+
+  const isWatched=watchedIds.has(c.id);
+  $("preview").innerHTML=`
+    <div class="preview-card">
+      <div class="preview-top">
+        ${avatar}
+        <div class="preview-meta">
+          <div class="preview-name">${c.name}</div>
+          <div class="preview-stat">Last ${videos.length} videos scanned</div>
+        </div>
+        <span class="preview-count">${totalDeals} deal${totalDeals!==1?"s":""}</span>
+      </div>
+      <div class="vids">${vidsHtml}</div>
+      <div class="preview-cta">
+        <div class="cta-title">📲 Get ${c.name}'s deals texted to you</div>
+        <div class="cta-sub">We'll watch this channel and text you new promo codes automatically — so you never miss one again.</div>
+        <div class="cta-form">
+          <input class="cta-input" id="ctaPhone" type="tel" placeholder="${subscriberPhone?'Already subscribed':'Your phone number'}" ${subscriberPhone?'disabled':''} value="${subscriberPhone||''}"/>
+          <button class="btn btn-blue" id="ctaBtn">${isWatched?'✓ Watching':'Watch & text me deals'}</button>
+        </div>
+        <div class="cta-note">🔒 No spam. Reply STOP anytime.</div>
+        <div class="status" id="ctaStatus"></div>
+      </div>
+    </div>`;
+
+  $("ctaBtn").addEventListener("click",subscribeAndWatch);
+  if(isWatched)$("ctaBtn").disabled=true;
 }
 
-// ── Scan ──
-async function doScan(url, isHero) {
-  if (!url) return;
-  const btn = document.getElementById(isHero ? "heroScanBtn" : "scanBtn");
-  const setS = isHero ? (m,s) => setHero(m,s) : (m,s) => setChip("scanStatus", m, s);
-  btn.disabled = true; setS(`${sp()} Fetching transcript…`, "busy");
-  const res = await fetch(`${API}/api/scan`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  }).then(r => r.json()).catch(e => ({ error: e.message }));
-  btn.disabled = false;
-  if (res.error) { setS(`❌  ${res.error}`, "err"); }
-  else if (res.skipped) { setS("⚡  Already scanned — results below.", "ok"); loadDeals(); }
-  else {
-    const n = res.dealsFound;
-    setS(`✅  Found ${n} deal${n !== 1 ? "s" : ""}.`, "ok");
-    loadDeals();
-    if (n > 0) document.querySelector(".deals-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+function escapeHtml(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+// ── code chip + expiry pill helpers ──
+function codeChip(code){
+  if(!code)return"";
+  const safe=escapeHtml(code);
+  return `<span class="code-chip" data-code="${safe}" title="Tap to copy"><span class="txt">${safe}</span><span class="ico">⧉</span></span>`;
+}
+function expiryPill(iso,text){
+  if(!iso)return"";
+  const now=new Date();const exp=new Date(iso);
+  const days=Math.ceil((exp-now)/(1000*60*60*24));
+  const label=exp.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  if(days<0)return `<span class="expiry expired" title="${escapeHtml(text||"")}">⏳ Expired ${label}</span>`;
+  if(days===0)return `<span class="expiry soon" title="${escapeHtml(text||"")}">⏳ Ends today</span>`;
+  if(days<=5)return `<span class="expiry soon" title="${escapeHtml(text||"")}">⏳ Ends in ${days} day${days>1?"s":""} (${label})</span>`;
+  return `<span class="expiry ok" title="${escapeHtml(text||"")}">⏳ Until ${label}</span>`;
+}
+
+// ── delegated one-tap copy for any code chip ──
+document.addEventListener("click",e=>{
+  const chip=e.target.closest&&e.target.closest(".code-chip");
+  if(!chip)return;
+  const code=chip.dataset.code;
+  navigator.clipboard.writeText(code).catch(()=>{});
+  chip.classList.add("copied");
+  const ico=chip.querySelector(".ico");if(ico)ico.textContent="✓";
+  toast(`Copied "${code}"`);
+  setTimeout(()=>{chip.classList.remove("copied");const i=chip.querySelector(".ico");if(i)i.textContent="⧉";},1400);
+});
+
+// ── subscribe + watch ──
+let watchedIds=new Set();
+let subscriberPhone=null;
+
+async function subscribeAndWatch(){
+  const c=currentChannel;
+  const phoneEl=$("ctaPhone");
+  const phone=phoneEl?phoneEl.value.trim():"";
+  const btn=$("ctaBtn");
+
+  // need a phone unless already subscribed
+  if(!subscriberPhone&&!phone){setStatus("ctaStatus","Enter your phone number first.","err");return;}
+
+  btn.disabled=true;btn.innerHTML=sp();
+
+  // 1. subscribe (if not already)
+  if(!subscriberPhone&&phone){
+    const r=await fetch(`${API}/api/sms/subscribe`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone})}).then(r=>r.json()).catch(e=>({error:e.message}));
+    if(r.error){setStatus("ctaStatus",`❌ ${r.error}`,"err");btn.disabled=false;btn.textContent="Watch & text me deals";return;}
+    subscriberPhone=r.phoneMasked;
+    if(r.mode==="demo")$("demoBadge").style.display="inline-block";
   }
-}
-document.getElementById("heroScanBtn").addEventListener("click", () => doScan(document.getElementById("heroUrl").value.trim(), true));
-document.getElementById("heroUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("heroScanBtn").click(); });
-document.getElementById("scanBtn").addEventListener("click", () => doScan(document.getElementById("videoUrl").value.trim(), false));
-document.getElementById("videoUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("scanBtn").click(); });
 
-// ── Channels ──
-async function loadChannels() {
-  const chs = await fetch(`${API}/api/channels`).then(r => r.json()).catch(() => []);
-  renderChannels(chs);
+  // 2. add channel to watch list (this also scans + texts new deals)
+  const w=await fetch(`${API}/api/channels`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:c.id,name:c.name,thumbnail:c.avatar})}).then(r=>r.json()).catch(e=>({error:e.message}));
+  if(w.error){setStatus("ctaStatus",`❌ ${w.error}`,"err");btn.disabled=false;btn.textContent="Watch & text me deals";return;}
+
+  watchedIds.add(c.id);
+  btn.innerHTML="✓ Watching";
+  const dealsTexted=w.newDeals||0;
+  setStatus("ctaStatus",`✅ Watching ${c.name}. ${dealsTexted>0?`Texted you ${dealsTexted} deal${dealsTexted>1?"s":""} we found.`:"You'll get a text when a new deal drops."}`,"ok");
+  toast(`📲 Now watching ${c.name}`);
+  loadWatched();loadSub();loadHistory();
 }
-function renderChannels(chs) {
-  const el = document.getElementById("channelList");
-  if (!chs.length) { el.innerHTML = ""; return; }
-  el.innerHTML = chs.map(ch => `
-    <div class="ch-row">
-      <div class="ch-avatar">${ch.name.charAt(0).toUpperCase()}</div>
-      <span class="ch-name" title="${ch.name}">${ch.name}</span>
-      <div class="ch-btns">
-        <button class="btn btn-soft ch-scan" data-id="${ch.id}" title="Scan now">↻</button>
-        <button class="btn btn-soft btn-danger ch-del" data-id="${ch.id}" title="Remove">✕</button>
+
+// ── watched list ──
+async function loadWatched(){
+  const chs=await fetch(`${API}/api/channels`).then(r=>r.json()).catch(()=>[]);
+  watchedIds=new Set(chs.map(c=>c.id));
+  const el=$("watchedList");
+  if(!chs.length){el.innerHTML=`<div class="empty-mini">Search a creator above and tap "Watch & text me deals" to start.</div>`;return;}
+  el.innerHTML=chs.map(c=>`
+    <div class="watched-item">
+      ${c.thumbnail?`<img class="watched-avatar" src="${c.thumbnail}" onerror="this.style.visibility='hidden'"/>`:`<div class="watched-avatar"></div>`}
+      <span class="watched-name">${c.name}</span>
+      <div class="watched-actions">
+        <button class="icon-btn rescan" data-id="${c.id}" data-name="${c.name.replace(/"/g,'&quot;')}" title="Check for new deals">↻</button>
+        <button class="icon-btn danger remove" data-id="${c.id}" title="Stop watching">✕</button>
       </div>
     </div>`).join("");
-  el.querySelectorAll(".ch-scan").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const orig = btn.textContent; btn.disabled = true; btn.innerHTML = sp();
-      setChip("channelStatus", `${sp()} Scanning latest videos…`, "busy");
-      const r = await fetch(`${API}/api/channels/${btn.dataset.id}/scan`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
-      if (r.error) { setChip("channelStatus", `❌  ${r.error}`, "err"); }
-      else {
-        const n = r.results.reduce((a, v) => a + (v.deals?.length ?? 0), 0);
-        setChip("channelStatus", `✅  Scanned ${r.results.length} videos — ${n} new deal${n !== 1 ? "s" : ""}.`, "ok");
-        loadDeals();
-      }
-      btn.disabled = false; btn.textContent = orig;
-    });
-  });
-  el.querySelectorAll(".ch-del").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      await fetch(`${API}/api/channels/${btn.dataset.id}`, { method: "DELETE" });
-      loadChannels();
-    });
-  });
+  el.querySelectorAll(".rescan").forEach(b=>b.addEventListener("click",async()=>{
+    b.disabled=true;b.innerHTML=sp();
+    const r=await fetch(`${API}/api/channels/${b.dataset.id}/scan`,{method:"POST"}).then(r=>r.json()).catch(e=>({error:e.message}));
+    b.disabled=false;b.textContent="↻";
+    if(r.error)toast(`❌ ${r.error}`);
+    else {toast(r.newDeals>0?`📲 Texted you ${r.newDeals} new deal${r.newDeals>1?"s":""} from ${b.dataset.name}`:`No new deals from ${b.dataset.name} yet`);loadHistory();}
+  }));
+  el.querySelectorAll(".remove").forEach(b=>b.addEventListener("click",async()=>{
+    await fetch(`${API}/api/channels/${b.dataset.id}`,{method:"DELETE"});
+    loadWatched();
+  }));
 }
-document.getElementById("addChannelBtn").addEventListener("click", async () => {
-  const url = document.getElementById("channelUrl").value.trim();
-  if (!url) return;
-  const btn = document.getElementById("addChannelBtn"); btn.disabled = true;
-  setChip("channelStatus", `${sp()} Resolving channel…`, "busy");
-  const res = await fetch(`${API}/api/channels`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  }).then(r => r.json()).catch(e => ({ error: e.message }));
-  btn.disabled = false;
-  if (res.error) { setChip("channelStatus", `❌  ${res.error}`, "err"); }
-  else {
-    setChip("channelStatus", `✅  Added "${res.channel.name}" — scanning in background.`, "ok");
-    document.getElementById("channelUrl").value = "";
-    loadChannels(); setTimeout(loadDeals, 9000);
-  }
-});
-document.getElementById("channelUrl").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("addChannelBtn").click(); });
 
-// ── Scan all / clear ──
-document.getElementById("scanAllBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("scanAllBtn"); btn.disabled = true; btn.innerHTML = `${sp()} Scanning…`;
-  const r = await fetch(`${API}/api/scan-all`, { method: "POST" }).then(r => r.json()).catch(() => ({}));
-  toast(`↻ Scanning ${r.channelsQueued ?? 0} channel${(r.channelsQueued ?? 0) !== 1 ? "s" : ""} in background…`);
-  btn.disabled = false; btn.textContent = "↻ Scan all";
-  setTimeout(loadDeals, 10000);
-});
-document.getElementById("clearAllBtn").addEventListener("click", async () => {
-  if (!confirm("Remove all saved deals?")) return;
-  const deals = await fetch(`${API}/api/deals`).then(r => r.json()).catch(() => []);
-  await Promise.all(deals.map(d => fetch(`${API}/api/deals/${d.id}`, { method: "DELETE" })));
-  loadDeals(); toast("🗑  All deals cleared.");
-});
-
-// ── Reveal on scroll ──
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
-}, { threshold: 0.12 });
-document.querySelectorAll(".reveal").forEach(el => io.observe(el));
-
-// ── SMS alerts ──
-async function loadSms() {
-  const s = await fetch(`${API}/api/sms`).then(r => r.json()).catch(() => null);
-  if (!s) return;
-  const form = document.getElementById("smsForm");
-  const manage = document.getElementById("smsManage");
-  const badge = document.getElementById("smsModeBadge");
-
-  if (!s.smsConfigured) {
-    badge.style.display = "inline-block";
-    badge.textContent = "Demo mode";
-    badge.title = "No SMS provider connected yet — texts are logged, not sent. Add Twilio keys to go live.";
-  } else {
-    badge.style.display = "none";
-  }
-
-  if (s.subscribed) {
-    form.style.display = "none";
-    manage.style.display = "block";
-    document.getElementById("smsPhone").textContent = s.phoneMasked;
-  } else {
-    form.style.display = "block";
-    manage.style.display = "none";
+// ── subscriber status ──
+async function loadSub(){
+  const s=await fetch(`${API}/api/sms`).then(r=>r.json()).catch(()=>({}));
+  if(s.subscribed){
+    subscriberPhone=s.phoneMasked;
+    $("subPanel").style.display="block";
+    $("subPhone").textContent=s.phoneMasked;
+    if(!s.smsConfigured)$("demoBadge").style.display="inline-block";
+  }else{
+    $("subPanel").style.display="none";
   }
 }
 
-document.getElementById("subscribeBtn").addEventListener("click", async () => {
-  const phone = document.getElementById("phoneInput").value.trim();
-  if (!phone) return;
-  const btn = document.getElementById("subscribeBtn");
-  btn.disabled = true;
-  setChip("smsStatus", `${sp()} Signing you up…`, "busy");
-  const res = await fetch(`${API}/api/sms/subscribe`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone }),
-  }).then(r => r.json()).catch(e => ({ error: e.message }));
-  btn.disabled = false;
-  if (res.error) { setChip("smsStatus", `❌  ${res.error}`, "err"); return; }
-  const modeNote = res.mode === "demo" ? " (demo — text logged, not sent)" : "";
-  setChip("smsStatus", `✅  Confirmation sent to ${res.phoneMasked}${modeNote}.`, "ok");
-  toast(`💬  You're subscribed${modeNote}`);
-  loadSms();
-});
-document.getElementById("phoneInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("subscribeBtn").click(); });
-
-document.getElementById("testTextBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("testTextBtn");
-  btn.disabled = true;
-  setChip("smsStatus2", `${sp()} Sending test text…`, "busy");
-  const res = await fetch(`${API}/api/sms/test`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
-  btn.disabled = false;
-  if (res.error) { setChip("smsStatus2", `❌  ${res.error}`, "err"); return; }
-  const modeNote = res.mode === "demo" ? " (demo — logged, not sent)" : "";
-  setChip("smsStatus2", `✅  Test text sent${modeNote}.`, "ok");
+$("testBtn")?.addEventListener("click",async()=>{
+  const b=$("testBtn");b.disabled=true;b.innerHTML=sp();
+  const r=await fetch(`${API}/api/sms/test`,{method:"POST"}).then(r=>r.json()).catch(e=>({error:e.message}));
+  b.disabled=false;b.textContent="Send test";
+  if(r.error)setStatus("subStatus",`❌ ${r.error}`,"err");
+  else setStatus("subStatus",r.mode==="demo"?"✅ Demo: text logged (no SMS provider connected yet).":"✅ Test text sent!","ok");
 });
 
-document.getElementById("unsubBtn").addEventListener("click", async () => {
-  await fetch(`${API}/api/sms/unsubscribe`, { method: "POST" }).catch(() => {});
-  toast("🔕  Alerts turned off");
-  loadSms();
+$("unsubBtn")?.addEventListener("click",async()=>{
+  if(!confirm("Turn off all text alerts?"))return;
+  await fetch(`${API}/api/sms`,{method:"DELETE"});
+  subscriberPhone=null;
+  loadSub();toast("Alerts turned off");
 });
 
-// ── Demo ──
-document.getElementById("demoBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("demoBtn");
-  btn.disabled = true;
-  const orig = btn.textContent;
-  btn.innerHTML = `${sp()} Loading demo…`;
-  const res = await fetch(`${API}/api/demo/load`, { method: "POST" }).then(r => r.json()).catch(e => ({ error: e.message }));
-  btn.disabled = false;
-  btn.textContent = orig;
-  if (res.error) { toast(`❌  ${res.error}`); return; }
-  const texted = res.texted ? " · texted you the codes" : "";
-  toast(`✅  Loaded ${res.dealsSeeded} deals from LTT + MKBHD${texted}`);
-  loadChannels();
-  loadDeals();
-  loadSms();
-  document.querySelector(".deals-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+// delegated for dynamically added unsubBtn/testBtn
+document.addEventListener("click",e=>{
+  if(e.target.id==="testBtn"){}
 });
 
-// ── Init ──
-loadDeals();
-loadChannels();
-loadSms();
+// ── init ──
+loadWatched();
+loadSub();
+loadHistory();
+
+let allDeals=[];
+let histFilterMode="all";
+
+function dealIsExpired(d){
+  return d.expiresAt && new Date(d.expiresAt).getTime() < Date.now();
+}
+function dealIsExpiring(d){
+  if(!d.expiresAt)return false;
+  const ms=new Date(d.expiresAt).getTime()-Date.now();
+  return ms>0 && ms < 7*864e5;
+}
+
+function renderHistory(){
+  const el=$("histList");
+  if(!el)return;
+  let deals=allDeals.slice();
+  if(histFilterMode==="active")deals=deals.filter(d=>!dealIsExpired(d));
+  else if(histFilterMode==="expiring")deals=deals.filter(d=>dealIsExpiring(d));
+
+  if(!allDeals.length){
+    el.innerHTML=`<div class="empty-mini">No deals captured yet. Watch a creator and we'll log every promo code here as new videos drop.</div>`;
+    return;
+  }
+  if(!deals.length){
+    el.innerHTML=`<div class="empty-mini">No ${histFilterMode} deals right now.</div>`;
+    return;
+  }
+
+  el.innerHTML=deals.map(d=>{
+    const code=d.code?codeChip(d.code):"";
+    const exp=expiryPill(d.expiresAt,d.expiryText);
+    const link=d.dealUrl?`<a class="deal-link" href="${d.dealUrl}" target="_blank" rel="noreferrer">${d.dealUrl.replace(/^https?:\/\//,"")}</a>`:"";
+    const expiredCls=dealIsExpired(d)?" expired":"";
+    return `<div class="hist-item${expiredCls}">
+      <div class="hist-head">
+        <span class="deal-badge">${d.label}</span>
+        ${code}
+        ${exp}
+        <button class="icon-btn danger hist-del" data-id="${d.id}" title="Remove">✕</button>
+      </div>
+      <div class="hist-ctx">${escapeHtml(d.context||"")}${link?" · "+link:""}</div>
+      <div class="hist-meta">📺 ${escapeHtml(d.channelName)} · <a href="${d.videoUrl}" target="_blank" rel="noreferrer">${escapeHtml((d.videoTitle||"").slice(0,60))}</a> · ${fmtDate(d.detectedAt)}</div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".hist-del").forEach(b=>b.addEventListener("click",async()=>{
+    await fetch(`${API}/api/deals/${b.dataset.id}`,{method:"DELETE"});
+    loadHistory();
+  }));
+}
+
+document.querySelectorAll("#histFilter .hist-tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll("#histFilter .hist-tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  histFilterMode=t.dataset.f;
+  renderHistory();
+}));
+
+$("clearHistBtn")?.addEventListener("click",async()=>{
+  if(!allDeals.length)return;
+  if(!confirm("Clear all saved deals from history?"))return;
+  await Promise.all(allDeals.map(d=>fetch(`${API}/api/deals/${d.id}`,{method:"DELETE"})));
+  loadHistory();
+  toast("History cleared");
+});
+
+async function loadHistory(){
+  const deals=await fetch(`${API}/api/deals`).then(r=>r.json()).catch(()=>[]);
+  allDeals=deals;
+  renderHistory();
+}
 </script>
 </body>
 </html>

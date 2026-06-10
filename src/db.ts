@@ -6,6 +6,7 @@ interface Channel {
   id: string;
   name: string;
   url: string;
+  thumbnail?: string | null;
   addedAt: string;
 }
 
@@ -18,8 +19,9 @@ interface Deal {
   label: string;
   code: string | null;
   context: string;
-  timestampSeconds: number;
-  timestampLabel: string;
+  dealUrl: string | null;
+  expiresAt?: string | null;
+  expiryText?: string | null;
   detectedAt: string;
 }
 

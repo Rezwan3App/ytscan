@@ -3,137 +3,223 @@ import { notifyMissedDeals } from "./notify";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface Snippet {
-  text: string;
-  start: number;
-  duration: number;
-}
-
 interface DetectedDeal {
   label: string;
   code: string | null;
   context: string;
-  timestampSeconds: number;
-  timestampLabel: string;
+  url: string | null;
+  expiresAt: string | null;
+  expiryText: string | null;
 }
 
-// ── Transcript via Python subprocess (works on local IPs, blocked on cloud) ──
+export interface ChannelSearchResult {
+  id: string;
+  name: string;
+  subscribers: string;
+  thumbnail: string;
+}
 
-async function fetchTranscript(videoId: string): Promise<Snippet[]> {
-  const script = `
-import sys, json
-from youtube_transcript_api import YouTubeTranscriptApi
-api = YouTubeTranscriptApi()
-try:
-    snippets = list(api.fetch(sys.argv[1]))
-    print(json.dumps([{"text": s.text, "start": s.start, "duration": s.duration} for s in snippets]))
-except Exception as e:
-    print(json.dumps({"error": str(e)}))
-`.trim();
+export interface ScannedVideo {
+  id: string;
+  title: string;
+  url: string;
+  publishedAt: string;
+  deals: DetectedDeal[];
+}
 
-  const proc = Bun.spawn(["python3", "-c", script, videoId], {
-    stdout: "pipe",
-    stderr: "pipe",
+// ── Channel search (works from cloud — no IP block) ──────────────────────────
+
+export async function searchChannels(query: string): Promise<ChannelSearchResult[]> {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgIQAg%253D%253D`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
   });
+  const html = await res.text();
 
-  const raw = await new Response(proc.stdout).text();
-  await proc.exited;
+  const m = html.match(/var ytInitialData = (\{.*?\});<\/script>/s);
+  if (!m) return [];
 
-  let parsed: any;
+  let data: any;
   try {
-    parsed = JSON.parse(raw.trim());
+    data = JSON.parse(m[1]);
   } catch {
-    throw new Error("Transcript parse failed");
+    return [];
   }
 
-  if (parsed?.error) {
-    const msg = String(parsed.error);
-    if (/IP|blocked|RequestBlocked|cloud provider|too many requests/i.test(msg)) {
-      throw new Error(
-        "YouTube is blocking transcript requests from this server's IP (a known cloud-provider limitation). This works when YTScan runs on a home/residential connection or behind a proxy. Channel watching and deal storage still work.",
-      );
+  const results: ChannelSearchResult[] = [];
+  const sections =
+    data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents ?? [];
+
+  for (const section of sections) {
+    const items = section?.itemSectionRenderer?.contents ?? [];
+    for (const item of items) {
+      const ch = item?.channelRenderer;
+      if (!ch) continue;
+      const id = ch.channelId;
+      const name = ch.title?.simpleText ?? "";
+      const subscribers =
+        ch.videoCountText?.simpleText ?? ch.subscriberCountText?.simpleText ?? "";
+      const thumbs = ch.thumbnail?.thumbnails ?? [];
+      let thumbnail = thumbs.length ? thumbs[thumbs.length - 1].url : "";
+      if (thumbnail.startsWith("//")) thumbnail = "https:" + thumbnail;
+      if (id && name) results.push({ id, name, subscribers, thumbnail });
+      if (results.length >= 6) break;
     }
-    if (/disabled|no transcript|TranscriptsDisabled|could not retrieve a transcript/i.test(msg)) {
-      throw new Error("No transcript is available for this video (captions may be disabled).");
-    }
-    throw new Error(msg.split("\n")[0] || "Transcript fetch failed.");
+    if (results.length >= 6) break;
   }
-  return parsed as Snippet[];
+
+  return results;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatTimestamp(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-// ── Promo detection ──────────────────────────────────────────────────────────
+// ── Promo detection (from video descriptions via RSS) ────────────────────────
 
 const PROMO_RULES: { pattern: RegExp; label: string }[] = [
-  { pattern: /use\s+(?:code|coupon)\s+["']?([A-Z0-9_\-]{3,20})["']?/i, label: "Promo code" },
-  { pattern: /(?:discount|promo)\s+code[:\s]+["']?([A-Z0-9_\-]{3,20})["']?/i, label: "Discount code" },
-  { pattern: /(?:get|save)\s+(?:\d+%|\$\d+)\s+(?:off|with)\s+(?:code\s+)?["']?([A-Z0-9_\-]{3,20})["']?/i, label: "Discount code" },
-  { pattern: /([A-Z0-9_\-]{3,20})\s+(?:for|to\s+get)\s+(?:\d+%|\$\d+)\s+off/i, label: "Discount code" },
+  { pattern: /use\s+(?:code|coupon|promo\s*code)\s+["']?([A-Z0-9][A-Z0-9_\-]{2,19})["']?/i, label: "Promo code" },
+  { pattern: /(?:discount|promo|coupon)\s+code[:\s]+["']?([A-Z0-9][A-Z0-9_\-]{2,19})["']?/i, label: "Discount code" },
+  { pattern: /code\s+["']?([A-Z0-9][A-Z0-9_\-]{2,19})["']?\s+(?:for|to\s+(?:get|save))/i, label: "Promo code" },
+  { pattern: /(?:get|save)\s+(?:up\s+to\s+)?(\d+%|\$\d+)\s+off/i, label: "Discount" },
+  { pattern: /(\d+%)\s+(?:off|discount)/i, label: "Discount" },
   { pattern: /free\s+trial\b/i, label: "Free trial" },
   { pattern: /\d+\s*(?:month|day|week)s?\s+free\b/i, label: "Free trial" },
-  { pattern: /first\s+\d+\s+(?:people|users|customers).*?free\b/i, label: "Limited offer" },
   { pattern: /giveaway\b/i, label: "Giveaway" },
-  { pattern: /(?:link\s+in\s+(?:the\s+)?(?:description|bio)|check\s+(?:the\s+)?description).*?(?:discount|deal|code|offer|free)/i, label: "Deal in description" },
-  { pattern: /limited\s+time\s+offer\b/i, label: "Limited offer" },
+  { pattern: /limited\s+time\s+(?:offer|deal)\b/i, label: "Limited offer" },
   { pattern: /exclusive\s+(?:deal|discount|offer)\b/i, label: "Exclusive deal" },
-  { pattern: /affiliate\s+(?:link|discount)\b/i, label: "Affiliate deal" },
 ];
 
-function detectDeals(snippets: Snippet[]): DetectedDeal[] {
-  const found: DetectedDeal[] = [];
-  const WINDOW = 4; // merge nearby snippets for context
+// Sponsor/affiliate URLs that usually carry the deal (e.g. ridge.com/MKBHD)
+const DEAL_URL_RE = /https?:\/\/(?:www\.)?([a-z0-9-]+\.[a-z]{2,})(\/[A-Za-z0-9_\-]+)?/gi;
+const GENERIC_DOMAINS = new Set([
+  "youtube.com", "youtu.be", "twitter.com", "x.com", "instagram.com", "facebook.com",
+  "tiktok.com", "discord.gg", "discord.com", "patreon.com", "twitch.tv", "goo.gl",
+  "bit.ly", "linktr.ee", "spotify.com", "apple.com", "threads.net", "reddit.com",
+]);
 
-  for (let i = 0; i < snippets.length; i++) {
-    const window = snippets.slice(Math.max(0, i - 1), i + WINDOW);
-    const text = window.map((s) => s.text).join(" ");
-
-    for (const rule of PROMO_RULES) {
-      const match = text.match(rule.pattern);
-      if (!match) continue;
-
-      const code = match[1] ?? null;
-
-      // deduplicate — skip if we already found the same code/label at roughly the same time
-      const already = found.some(
-        (f) => f.label === rule.label && f.code === code && Math.abs(f.timestampSeconds - snippets[i].start) < 30,
-      );
-      if (already) continue;
-
-      found.push({
-        label: rule.label,
-        code: code?.toUpperCase() ?? null,
-        context: text.slice(0, 220),
-        timestampSeconds: Math.floor(snippets[i].start),
-        timestampLabel: formatTimestamp(snippets[i].start),
-      });
-      break; // one hit per snippet window
+function findDealUrl(description: string): string | null {
+  const matches = [...description.matchAll(DEAL_URL_RE)];
+  for (const m of matches) {
+    const domain = m[1].toLowerCase();
+    const path = m[2];
+    // a sponsor link usually has a path segment (the creator's code) and isn't a social domain
+    if (!GENERIC_DOMAINS.has(domain) && path && path.length > 1) {
+      return m[0];
     }
+  }
+  return null;
+}
+
+const MONTHS: Record<string, number> = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+  may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8,
+  september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+};
+
+// Phrases that signal an expiry is nearby
+const EXPIRY_TRIGGER = /(?:ends?|expires?|expiring|valid\s+(?:un)?til|through|offer\s+ends?|deal\s+ends?|good\s+(?:un)?til|until|before|by)\b/i;
+
+function parseExpiry(description: string): { iso: string; text: string } | null {
+  // Only look near an expiry trigger word to avoid matching random dates
+  const trigger = description.match(EXPIRY_TRIGGER);
+  if (!trigger) return null;
+  const idx = trigger.index ?? 0;
+  const window = description.slice(idx, Math.min(description.length, idx + 80));
+
+  const now = new Date();
+  const year = now.getUTCFullYear();
+
+  // "June 21st", "June 21", "Jun 21 2026"
+  const monthDay = window.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t)?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?/i,
+  );
+  if (monthDay) {
+    const month = MONTHS[monthDay[1].toLowerCase().replace(".", "")];
+    const day = parseInt(monthDay[2], 10);
+    let yr = monthDay[3] ? parseInt(monthDay[3], 10) : year;
+    if (month !== undefined && day >= 1 && day <= 31) {
+      let d = new Date(Date.UTC(yr, month, day, 23, 59, 59));
+      // If no explicit year and the date is well in the past, assume next year
+      if (!monthDay[3] && d.getTime() < now.getTime() - 7 * 864e5) {
+        d = new Date(Date.UTC(yr + 1, month, day, 23, 59, 59));
+      }
+      return { iso: d.toISOString(), text: monthDay[0].trim() };
+    }
+  }
+
+  // "6/21", "6/21/26", "06-21-2026"
+  const numeric = window.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+  if (numeric) {
+    const month = parseInt(numeric[1], 10) - 1;
+    const day = parseInt(numeric[2], 10);
+    let yr = numeric[3] ? parseInt(numeric[3], 10) : year;
+    if (yr < 100) yr += 2000;
+    if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+      let d = new Date(Date.UTC(yr, month, day, 23, 59, 59));
+      if (!numeric[3] && d.getTime() < now.getTime() - 7 * 864e5) {
+        d = new Date(Date.UTC(yr + 1, month, day, 23, 59, 59));
+      }
+      return { iso: d.toISOString(), text: numeric[0].trim() };
+    }
+  }
+
+  return null;
+}
+
+function detectDeals(description: string): DetectedDeal[] {
+  if (!description) return [];
+  const found: DetectedDeal[] = [];
+  const dealUrl = findDealUrl(description);
+  const expiry = parseExpiry(description);
+
+  for (const rule of PROMO_RULES) {
+    const match = description.match(rule.pattern);
+    if (!match) continue;
+
+    const code = match[1] && /[A-Z]/i.test(match[1]) && !match[1].includes("%") && !match[1].includes("$")
+      ? match[1].toUpperCase()
+      : null;
+
+    // context: the sentence/line containing the match
+    const idx = match.index ?? 0;
+    const start = Math.max(0, description.lastIndexOf("\n", idx));
+    let end = description.indexOf("\n", idx);
+    if (end === -1) end = Math.min(description.length, idx + 160);
+    const context = description.slice(start, end).trim().replace(/\s+/g, " ").slice(0, 200);
+
+    const dupe = found.some((f) => f.label === rule.label && f.code === code);
+    if (dupe) continue;
+
+    found.push({ label: rule.label, code, context, url: dealUrl, expiresAt: expiry?.iso ?? null, expiryText: expiry?.text ?? null });
   }
 
   return found;
 }
 
-// ── RSS channel fetcher ──────────────────────────────────────────────────────
+// ── RSS channel fetcher (includes title + description + publish date) ────────
 
 interface RssVideo {
   id: string;
   title: string;
   url: string;
+  description: string;
+  publishedAt: string;
 }
 
-async function fetchRssVideos(channelId: string, max = 5): Promise<RssVideo[]> {
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+export async function fetchRssVideos(channelId: string, max = 5): Promise<RssVideo[]> {
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-  const res = await fetch(rssUrl);
-  if (!res.ok) throw new Error(`RSS fetch failed (${res.status})`);
+  const res = await fetch(rssUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) throw new Error(`Could not load this channel's videos (${res.status}).`);
   const xml = await res.text();
 
   const videos: RssVideo[] = [];
@@ -143,117 +229,92 @@ async function fetchRssVideos(channelId: string, max = 5): Promise<RssVideo[]> {
     const entry = m[1];
     const idMatch = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
     const titleMatch = entry.match(/<title>([^<]+)<\/title>/);
+    const descMatch = entry.match(/<media:description>([\s\S]*?)<\/media:description>/);
+    const dateMatch = entry.match(/<published>([^<]+)<\/published>/);
     if (idMatch && titleMatch) {
       videos.push({
         id: idMatch[1],
-        title: titleMatch[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
+        title: decodeEntities(titleMatch[1]),
         url: `https://www.youtube.com/watch?v=${idMatch[1]}`,
+        description: descMatch ? decodeEntities(descMatch[1]) : "",
+        publishedAt: dateMatch ? dateMatch[1] : "",
       });
     }
   }
   return videos;
 }
 
-export async function resolveChannelId(url: string): Promise<{ id: string; name: string } | null> {
+// ── Channel metadata resolver (name from search; used as fallback) ───────────
+
+export async function resolveChannelName(channelId: string): Promise<string> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
-      },
-    });
-    const html = await res.text();
-
-    // Channel ID — prefer the page owner's own ID, not the first "channelId"
-    // match (which is usually a recommended/related channel).
-    const id =
-      html.match(/"externalId"\s*:\s*"(UC[\w-]{22})"/)?.[1] ||
-      html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1] ||
-      html.match(/<meta property="og:url" content="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)?.[1];
-    if (!id) return null;
-
-    // Name — og:title is the clean channel name; fall back to <title>.
-    const rawName =
-      html.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ||
-      html.match(/<title>([^<]+?)(?:\s*-\s*YouTube)?<\/title>/)?.[1];
-    const name = rawName ? decodeEntities(rawName.replace(/\s*-\s*YouTube\s*$/, "").trim()) : id;
-
-    return { id, name };
+    const videos = await fetchRssVideos(channelId, 1);
+    return videos.length ? videos[0].title : channelId;
   } catch {
-    return null;
+    return channelId;
   }
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\\u0026/g, "&");
+// ── Public: preview a channel's last N videos + deals (no save) ──────────────
+
+export async function previewChannel(
+  channelId: string,
+  channelName: string,
+  max = 5,
+): Promise<ScannedVideo[]> {
+  const videos = await fetchRssVideos(channelId, max);
+  return videos.map((v) => ({
+    id: v.id,
+    title: v.title,
+    url: v.url,
+    publishedAt: v.publishedAt,
+    deals: detectDeals(v.description),
+  }));
 }
 
-// ── Public scan functions ────────────────────────────────────────────────────
+// ── Public: scan + persist deals for a channel, then notify ──────────────────
 
-export async function scanVideo(videoId: string, videoTitle: string, videoUrl: string, channelName: string) {
-  if (db.isVideoScanned(videoId)) return { skipped: true, deals: [] };
-
-  let snippets: Snippet[];
-  try {
-    snippets = await fetchTranscript(videoId);
-  } catch (err: any) {
-    db.markVideoScanned(videoId);
-    throw new Error(err.message ?? "Could not fetch transcript");
-  }
-
-  const deals = detectDeals(snippets);
-  for (const d of deals) {
-    db.addDeal({ videoId, videoTitle, channelName, videoUrl, ...d });
-  }
-  db.markVideoScanned(videoId);
-  return { skipped: false, deals };
-}
-
-export async function scanChannel(channelId: string) {
-  const channel = db.getChannels().find((c) => c.id === channelId);
-  if (!channel) throw new Error("Channel not found");
-
-  const videos = await fetchRssVideos(channelId, 5);
-  const results = [];
+export async function scanChannelAndSave(
+  channelId: string,
+  channelName: string,
+  max = 5,
+): Promise<{ videos: ScannedVideo[]; newDeals: number }> {
+  const videos = await fetchRssVideos(channelId, max);
   const freshDeals: any[] = [];
+
   for (const v of videos) {
-    try {
-      const r = await scanVideo(v.id, v.title, v.url, channel.name);
-      results.push({ videoId: v.id, title: v.title, ...r });
-      if (!r.skipped && r.deals.length) {
-        for (const d of r.deals) {
-          freshDeals.push({
-            channelName: channel.name,
-            videoTitle: v.title,
-            videoUrl: v.url,
-            label: d.label,
-            code: d.code,
-            timestampSeconds: d.timestampSeconds,
-            timestampLabel: d.timestampLabel,
-          });
-        }
-      }
-    } catch (e: any) {
-      results.push({ videoId: v.id, title: v.title, error: e.message });
+    const deals = detectDeals(v.description);
+    if (db.isVideoScanned(v.id)) continue;
+    db.markVideoScanned(v.id);
+
+    for (const d of deals) {
+      const saved = db.addDeal({
+        videoId: v.id,
+        videoTitle: v.title,
+        channelName,
+        videoUrl: v.url,
+        label: d.label,
+        code: d.code,
+        context: d.context,
+        dealUrl: d.url,
+        expiresAt: d.expiresAt,
+        expiryText: d.expiryText,
+      });
+      freshDeals.push(saved);
     }
   }
 
-  // Text the subscriber about deals they'd have missed (no-op if not subscribed).
-  if (freshDeals.length) {
-    await notifyMissedDeals(freshDeals, channel.name).catch(console.error);
+  if (freshDeals.length > 0) {
+    await notifyMissedDeals(freshDeals, channelName);
   }
 
-  return results;
+  const allVideos: ScannedVideo[] = videos.map((v) => ({
+    id: v.id,
+    title: v.title,
+    url: v.url,
+    publishedAt: v.publishedAt,
+    deals: detectDeals(v.description),
+  }));
+
+  return { videos: allVideos, newDeals: freshDeals.length };
 }
-
-// ── Demo channel presets ─────────────────────────────────────────────────────
-
-export const DEMO_CHANNELS = [
-  { id: "UCXuqSBlHAE6Xw-yeJA0Tunw", name: "Linus Tech Tips", url: "https://www.youtube.com/@LinusTechTips" },
-  { id: "UCBJycsmduvYEL83R_U4JriQ", name: "MKBHD", url: "https://www.youtube.com/@mkbhd" },
-];
