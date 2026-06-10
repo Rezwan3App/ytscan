@@ -96,6 +96,9 @@ export const db = {
 
   getDeals: (): Deal[] => load().deals,
 
+  dealExists: (videoId: string, code: string | null, label: string): boolean =>
+    load().deals.some((d) => d.videoId === videoId && d.code === code && d.label === label),
+
   addDeal: (deal: Omit<Deal, "id" | "detectedAt">): Deal => {
     const data = load();
     const entry: Deal = { ...deal, id: data.nextDealId++, detectedAt: new Date().toISOString() };

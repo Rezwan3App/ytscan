@@ -218,9 +218,19 @@ function decodeEntities(s: string): string {
 
 export async function fetchRssVideos(channelId: string, max = 5): Promise<RssVideo[]> {
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-  const res = await fetch(rssUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) throw new Error(`Could not load this channel's videos (${res.status}).`);
-  const xml = await res.text();
+  let xml = "";
+  let lastStatus = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(rssUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+    lastStatus = res.status;
+    if (res.ok) {
+      xml = await res.text();
+      break;
+    }
+    // YouTube's RSS endpoint intermittently 404s/429s on valid channels — back off and retry.
+    await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+  }
+  if (!xml) throw new Error(`Could not load this channel's videos (${lastStatus}).`);
 
   const videos: RssVideo[] = [];
   const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
@@ -284,10 +294,10 @@ export async function scanChannelAndSave(
 
   for (const v of videos) {
     const deals = detectDeals(v.description);
-    if (db.isVideoScanned(v.id)) continue;
     db.markVideoScanned(v.id);
 
     for (const d of deals) {
+      if (db.dealExists(v.id, d.code, d.label)) continue;
       const saved = db.addDeal({
         videoId: v.id,
         videoTitle: v.title,
